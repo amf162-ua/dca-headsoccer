@@ -39,11 +39,11 @@ void MainGameState::handleInput()
 
     }
 
-    if (IsKeyDown(KEY_W))
+    if (IsKeyPressed(KEY_W))
     {
-        player1.vy = 5.0f;
+        player1.vy = -7.0f;
     } else {
-        player1.vy = 0.0f;
+        this->physics.Gravity(player1.vy, 0.016f);
     }
 
     if (IsKeyDown(KEY_SPACE))
@@ -64,11 +64,11 @@ void MainGameState::handleInput()
 
     }
 
-    if (IsKeyDown(KEY_UP))
+    if (IsKeyPressed(KEY_UP))
     {
-        player2.vy = 5.0f;
+        player2.vy = -7.0f;
     } else {
-        player2.vy = 0.0f;
+        this->physics.Gravity(player2.vy, 0.016f);
     }
 
     if (IsKeyDown(KEY_KP_ENTER))
@@ -93,6 +93,28 @@ void MainGameState::update(float deltaTime)
 
     Rectangle ballRect = {ball.x, ball.y, 20.0f, 20.0f};
 
+    float suelo = 600.0f;
+    float altoJugador = player1Rect.height;
+    float altoPelota = ballRect.height;
+
+    if(player1.y + altoJugador >= suelo)
+    {
+        player1.y = suelo - altoJugador;
+        player1.vy = 0.0f;
+    }
+
+    if(player2.y + altoJugador >= suelo)
+    {
+        player2.y = suelo - altoJugador;
+        player2.vy = 0.0f;
+    }
+
+    if(ball.y + altoPelota >= suelo){
+        
+        ball.y = suelo - altoPelota;
+        ball.vy = -ball.vy * 0.6f;
+    }
+
     if(CheckCollisionRecs(ballRect, player1Rect))
     {
         ball.vx = 5.0f;
@@ -102,7 +124,10 @@ void MainGameState::update(float deltaTime)
         ball.vx = -5.0f;
     }
 
-
+    this->physics.Gravity(this->ball.vy, deltaTime);
+    this->physics.Gravity(this->player1.vy, deltaTime);
+    this->physics.Gravity(this->player2.vy, deltaTime);
+    this->physics.ApplyFriction(this->ball.vx, 2.0f, deltaTime);
 }
 
 void MainGameState::render()

@@ -3,6 +3,7 @@
 extern "C" {
     #include <raylib.h>
 }
+#include "physics/physics.hpp"
 
 struct Player {
     float x;
@@ -25,6 +26,7 @@ class MainGameState : public GameState
         Player player2;
         Player npc;
         Ball ball;
+        Physics physics;
 
     public:
         MainGameState();

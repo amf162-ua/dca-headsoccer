@@ -88,14 +88,13 @@ void MainGameState::update(float deltaTime)
     this->ball.x += this->ball.vx;
     this->ball.y += this->ball.vy;
 
+    Rectangle ballRect = {ball.x-20, ball.y-20, 40.0f, 40.0f};
     Rectangle player1Rect = {player1.x, player1.y, 50.0f, 80.0f};
     Rectangle player2Rect = {player2.x, player2.y, 50.0f, 80.0f};
 
-    Rectangle ballRect = {ball.x, ball.y, 20.0f, 20.0f};
-
     float suelo = 600.0f;
     float altoJugador = player1Rect.height;
-    float altoPelota = ballRect.height;
+    float altoPelota = ballRect.height/2;
 
     if(player1.y + altoJugador >= suelo)
     {
@@ -117,12 +116,59 @@ void MainGameState::update(float deltaTime)
 
     if(CheckCollisionRecs(ballRect, player1Rect))
     {
-        ball.vx = 5.0f;
+        //Derecha
+        if(ballRect.x + ballRect.height/2 >= player1.x + player1Rect.width)
+        {
+            ball.vx = player1.vx + 0.5f;
+        }
 
-    } else if(CheckCollisionRecs(ballRect, player2Rect))
-    {
-        ball.vx = -5.0f;
+        //Izquierda
+        if(ballRect.x + ballRect.height/2 <= player1.x)
+        {
+            ball.vx = player1.vx - 0.5f;
+        }
+
+        //Arriba
+        if(ballRect.y - ballRect.height/2 <= player1.y){
+            
+            ball.vy = -5.0f;
+        }
+
+        //Abajo
+        if(ballRect.y + ballRect.height/2 >= player1.y + player1Rect.height){
+            
+            ball.vy = 5.0f;
+        }
     }
+
+        if(CheckCollisionRecs(ballRect, player2Rect))
+    {
+        //Derecha
+        if(ballRect.x + ballRect.height/2 >= player2.x + player2Rect.width)
+        {
+            ball.vx = player2.vx + 0.5f;
+        }
+
+        //Izquierda
+        if(ballRect.x + ballRect.height/2 <= player2.x)
+        {
+            ball.vx = player2.vx - 0.5f;
+        }
+
+        //Arriba
+        if(ballRect.y - ballRect.height/2 <= player2.y){
+            
+            ball.vy = -5.0f;
+        }
+
+        //Abajo
+        if(ballRect.y + ballRect.height/2 >= player2.y + player2Rect.height){
+            
+            ball.vy = 5.0f;
+        }
+    }
+
+
 
     this->physics.Gravity(this->ball.vy, deltaTime);
     this->physics.Gravity(this->player1.vy, deltaTime);
@@ -137,9 +183,14 @@ void MainGameState::render()
     DrawRectangle(0,600,1080,120,GREEN);
     DrawLine(0,600,1080,600,DARKGREEN);
 
+    //Rectangle ballRect = {ball.x, ball.y, 20.0f, 20.0f};
+    //Rectangle player1Rect = {player1.x, player1.y, 50.0f, 80.0f};
+    //Rectangle player2Rect = {player2.x, player2.y, 50.0f, 80.0f};
+
     DrawRectangle((int)player1.x, (int)player1.y, 50, 80, RED);
     DrawRectangle((int)player2.x, (int)player2.y, 50, 80, BLUE);
-    DrawCircle((int)ball.x, (int)ball.y, 20,BLACK);
+    DrawCircle((int)ball.x, (int)ball.y, 20, BLACK);
+    //DrawRectangle((int)ball.x-20, (int)ball.y-20, 40, 40, PINK);
     EndDrawing();
 
 }

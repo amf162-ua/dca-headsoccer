@@ -12,6 +12,11 @@ struct Player {
     float vy;
 };
 
+struct Goal {
+    Rectangle netArea;   // Área de la red
+    Rectangle crossbar;  // Larguero superior
+};
+
 struct Ball {
     float x;
     float y;
@@ -27,6 +32,14 @@ class MainGameState : public GameState
         Player npc;
         Ball ball;
         Physics physics;
+
+        Goal goalP1;
+        Goal goalP2;
+
+        int scoreP1;
+        int scoreP2;
+
+        void resetPositions();
 
     public:
         MainGameState();

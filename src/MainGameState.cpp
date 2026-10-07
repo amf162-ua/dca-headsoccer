@@ -3,6 +3,8 @@
 #include <StateMachine.hpp>
 #include <iostream>
 
+#include "physics/PhysicsGeometry.hpp"
+
 // Constructor: Inicializamos el marcador a 0
 MainGameState::MainGameState() : scoreP1(0), scoreP2(0)
 {
@@ -136,9 +138,14 @@ void MainGameState::update(float deltaTime)
     this->ball.y += this->ball.vy;
 
     // Cajas de colisión (AABB)
-    Rectangle ballRect = {ball.x - 20, ball.y - 20, 40.0f, 40.0f};
-    Rectangle player1Rect = {player1.x, player1.y, 50.0f, 80.0f};
-    Rectangle player2Rect = {player2.x, player2.y, 50.0f, 80.0f};
+    Rectangle ballRect =
+    PhysicsGeometry::ballBounds(ball.x, ball.y);
+
+    Rectangle player1Rect =
+    PhysicsGeometry::playerBounds(player1.x, player1.y);
+
+    Rectangle player2Rect =
+    PhysicsGeometry::playerBounds(player2.x, player2.y);
 
     float suelo = 600.0f;
     float altoJugador = player1Rect.height;
@@ -236,9 +243,19 @@ void MainGameState::render()
     DrawRectangleRec(goalP2.crossbar, DARKGRAY);
 
     // Jugadores y Pelota
-    DrawRectangle((int)player1.x, (int)player1.y, 50, 80, RED);
-    DrawRectangle((int)player2.x, (int)player2.y, 50, 80, BLUE);
-    DrawCircle((int)ball.x, (int)ball.y, 20, BLACK);
+    // Jugadores y Pelota
+    
+    DrawRectangleRec(
+    PhysicsGeometry::playerBounds(player1.x, player1.y), RED
+    );
+
+    DrawRectangleRec(
+    PhysicsGeometry::playerBounds(player2.x, player2.y), BLUE
+    );
+
+    DrawCircleV(
+    {ball.x, ball.y}, PhysicsGeometry::ballRadius, BLACK
+    );
 
     // Marcador (HUD)
     std::string scoreText = std::to_string(scoreP1) + "  -  " + std::to_string(scoreP2);

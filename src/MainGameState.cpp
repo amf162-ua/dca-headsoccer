@@ -1,4 +1,6 @@
 #include <MainGameState.hpp>
+#include <GameOverState.hpp>
+#include <StateMachine.hpp>
 #include <iostream>
 
 // Constructor: Inicializamos el marcador a 0
@@ -33,6 +35,7 @@ void MainGameState::init()
     // Reseteamos el marcador
     this->scoreP1 = 0;
     this->scoreP2 = 0;
+    this->matchTimer = 90.0f;
 
     // Configuración de dimensiones para las porterías
     float goalWidth = 80.0f;
@@ -113,6 +116,15 @@ void MainGameState::handleInput()
 
 void MainGameState::update(float deltaTime)
 {
+    this->matchTimer -= deltaTime;
+    if (this->matchTimer <= 0.0f)
+    {
+        this->matchTimer = 0.0f;
+        // Cuando se agota el tiempo, cambiamos a GameOverState pasando los marcadores
+        this->state_machine->add_state(std::make_unique<GameOverState>(scoreP1, scoreP2), true);
+        return;
+    }
+
     // 1. Integración de movimiento
     this->player1.x += this->player1.vx;
     this->player1.y += this->player1.vy;
@@ -233,6 +245,14 @@ void MainGameState::render()
     int fontSize = 40;
     int textWidth = MeasureText(scoreText.c_str(), fontSize);
     DrawText(scoreText.c_str(), 540 - (textWidth / 2), 25, fontSize, BLACK);
+
+    int minutes = (int)matchTimer / 60;
+    int seconds = (int)matchTimer % 60;
+    char timerBuffer[16];
+    snprintf(timerBuffer, sizeof(timerBuffer), "%02d:%02d", minutes, seconds);
+
+    Color timerColor = (matchTimer <= 10.0f) ? RED : DARKGRAY; // Se pone rojo en los últimos 10 segundos
+    DrawText(timerBuffer, 540 - (MeasureText(timerBuffer, 30) / 2), 65, 30, timerColor);
 
     EndDrawing();
 }

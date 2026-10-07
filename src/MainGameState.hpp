@@ -39,6 +39,8 @@ class MainGameState : public GameState
         int scoreP1;
         int scoreP2;
 
+        float matchTimer; // Temporizador del partido
+
         void resetPositions();
 
     public:

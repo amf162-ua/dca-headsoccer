@@ -2,11 +2,11 @@
 #include <raylib.h>
 
 namespace PhysicsGeometry {
-constexpr float playerWidth = 50.0f;
-constexpr float playerHeight = 80.0f;
-constexpr float ballRadius = 20.0f;
-constexpr float groundY = 600.0f;
-constexpr float fieldWidth = 1080.0f;
+const float playerWidth = 50.0f;
+const float playerHeight = 80.0f;
+const float ballRadius = 20.0f;
+const float groundY = 600.0f;
+const float fieldWidth = 1080.0f;
 
 inline Rectangle playerBounds(float x, float y) {
     return {x, y, playerWidth, playerHeight};

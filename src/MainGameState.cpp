@@ -16,12 +16,14 @@ void MainGameState::resetPositions()
     this->player1.y = 520.f;
     this->player1.vx = 0.f;
     this->player1.vy = 0.f;
+    this->player1.isGrounded = true;
 
     // Jugador 2 (Derecha)
     this->player2.x = 830.f;
     this->player2.y = 520.f;
     this->player2.vx = 0.f;
     this->player2.vy = 0.f;
+    this->player2.isGrounded = true;
 
     // Pelota en el centro de la pantalla (1080 / 2 = 540)
     this->ball.x = 540.f;
@@ -71,13 +73,11 @@ void MainGameState::handleInput()
         player1.vx = 0.0f;
     }
 
-    if (IsKeyPressed(KEY_W))
+    // Salto: Solo si presiona W Y está en el suelo
+    if (IsKeyPressed(KEY_W) && player1.isGrounded)
     {
         player1.vy = -7.0f;
-    } 
-    else 
-    {
-        this->physics.Gravity(player1.vy, 0.016f);
+        player1.isGrounded = false; // Bloqueamos saltar en el aire
     }
 
     if (IsKeyDown(KEY_SPACE))
@@ -99,13 +99,11 @@ void MainGameState::handleInput()
         player2.vx = 0.0f;
     }
 
-    if (IsKeyPressed(KEY_UP))
+    // Salto: Solo si presiona UP Y está en el suelo
+    if (IsKeyPressed(KEY_UP) && player2.isGrounded)
     {
         player2.vy = -7.0f;
-    } 
-    else 
-    {
-        this->physics.Gravity(player2.vy, 0.016f);
+        player2.isGrounded = false; // Bloqueamos saltar en el aire
     }
 
     if (IsKeyDown(KEY_KP_ENTER))
@@ -148,12 +146,23 @@ void MainGameState::update(float deltaTime)
     if (player1.y + altoJugador >= suelo) {
         player1.y = suelo - altoJugador;
         player1.vy = 0.0f;
+        player1.isGrounded = true;
     }
 
     if (player2.y + altoJugador >= suelo) {
         player2.y = suelo - altoJugador;
         player2.vy = 0.0f;
+        player2.isGrounded = true;
     }
+
+    // === NUEVO: LÍMITES DE PANTALLA PARA JUGADORES ===
+    // Evita que el Jugador 1 se salga por los lados
+    if (player1.x < 0.0f) player1.x = 0.0f;
+    if (player1.x + player1Rect.width > 1080.0f) player1.x = 1080.0f - player1Rect.width;
+
+    // Evita que el Jugador 2 se salga por los lados
+    if (player2.x < 0.0f) player2.x = 0.0f;
+    if (player2.x + player2Rect.width > 1080.0f) player2.x = 1080.0f - player2Rect.width;
 
     // 3. Colisión de Pelota con el Suelo
     if (ball.y + altoPelota >= suelo) {
@@ -171,14 +180,22 @@ void MainGameState::update(float deltaTime)
         ball.vx = -ball.vx * 0.7f;
     }
 
-    // 5. Rebote en Largueros
+    // 5. Rebote en Largueros (MODIFICADO: con impulso horizontal si se frena)
     if (CheckCollisionRecs(ballRect, goalP1.crossbar)) {
         ball.vy = -ball.vy * 0.8f;
         ball.y = goalP1.crossbar.y - altoPelota;
+        
+        // Si cae completamente vertical, le damos un leve impulso hacia el campo
+        if (ball.vx == 0.0f) ball.vx = 2.0f;
+        else ball.vx *= 1.2f;
     }
     if (CheckCollisionRecs(ballRect, goalP2.crossbar)) {
         ball.vy = -ball.vy * 0.8f;
         ball.y = goalP2.crossbar.y - altoPelota;
+
+        // Si cae completamente vertical, le damos un leve impulso hacia el campo
+        if (ball.vx == 0.0f) ball.vx = -2.0f;
+        else ball.vx *= 1.2f;
     }
 
     // 6. Detección de Gol

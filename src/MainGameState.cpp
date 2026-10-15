@@ -155,14 +155,57 @@ void MainGameState::update(float deltaTime)
         player2.isGrounded = true;
     }
 
-    // === NUEVO: LÍMITES DE PANTALLA PARA JUGADORES ===
-    // Evita que el Jugador 1 se salga por los lados
+    // === COLISIÓN ENTRE JUGADORES (Ajustada al área real de los rectángulos) ===
+    // Solo colisionan si sus cajas (X e Y) se tocan realmente en el espacio
+    if (CheckCollisionRecs(player1Rect, player2Rect)) {
+        float overlapX = (player1.x < player2.x)
+            ? (player1.x + player1Rect.width - player2.x)
+            : (player2.x + player2Rect.width - player1.x);
+
+        float overlapY = (player1.y < player2.y)
+            ? (player1.y + player1Rect.height - player2.y)
+            : (player2.y + player2Rect.height - player1.y);
+
+        // Si el choque es lateral (horizontal)
+        if (overlapX < overlapY) {
+            if (player1.x < player2.x) {
+                player1.x -= overlapX / 2.0f;
+                player2.x += overlapX / 2.0f;
+                if (player1.vx > 0.0f) player1.vx = 0.0f;
+                if (player2.vx < 0.0f) player2.vx = 0.0f;
+            } else {
+                player1.x += overlapX / 2.0f;
+                player2.x -= overlapX / 2.0f;
+                if (player1.vx < 0.0f) player1.vx = 0.0f;
+                if (player2.vx > 0.0f) player2.vx = 0.0f;
+            }
+        } else {
+            // Si el choque es vertical (uno aterriza sobre el otro)
+            if (player1.y < player2.y) {
+                player1.y -= overlapY;
+                player1.vy = 0.0f;
+                player1.isGrounded = true;
+            } else {
+                player2.y -= overlapY;
+                player2.vy = 0.0f;
+                player2.isGrounded = true;
+            }
+        }
+    }
+
+    // === LÍMITES DE PANTALLA PARA JUGADORES ===
+    // Evita que los jugadores se salgan por los extremos de la pantalla
     if (player1.x < 0.0f) player1.x = 0.0f;
     if (player1.x + player1Rect.width > 1080.0f) player1.x = 1080.0f - player1Rect.width;
 
-    // Evita que el Jugador 2 se salga por los lados
     if (player2.x < 0.0f) player2.x = 0.0f;
     if (player2.x + player2Rect.width > 1080.0f) player2.x = 1080.0f - player2Rect.width;
+
+    // Sincronizamos las cajas de colisión con las posiciones finales ajustadas
+    player1Rect.x = player1.x;
+    player1Rect.y = player1.y;
+    player2Rect.x = player2.x;
+    player2Rect.y = player2.y;
 
     // 3. Colisión de Pelota con el Suelo
     if (ball.y + altoPelota >= suelo) {

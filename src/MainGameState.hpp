@@ -40,8 +40,10 @@ class MainGameState : public GameState
         int scoreP2;
 
         float matchTimer; // Temporizador del partido
+        bool debugEnabled;
 
         void resetPositions();
+        void renderDebug() const;
 
     public:
         MainGameState();

@@ -3,10 +3,12 @@
 #include <StateMachine.hpp>
 #include <iostream>
 
+#include "debug/DebugDraw.hpp"
 #include "physics/PhysicsGeometry.hpp"
 
 // Constructor: Inicializamos el marcador a 0
-MainGameState::MainGameState() : scoreP1(0), scoreP2(0)
+MainGameState::MainGameState()
+    : scoreP1(0), scoreP2(0), debugEnabled(false)
 {
 }
 
@@ -43,15 +45,25 @@ void MainGameState::init()
     float goalWidth = 80.0f;
     float goalHeight = 150.0f;
     float crossbarThickness = 12.0f;
-    float groundY = 600.0f;
+    float groundY = PhysicsGeometry::groundY;
 
     // Portería Izquierda (J1)
     this->goalP1.netArea = { 0.0f, groundY - goalHeight, goalWidth, goalHeight };
     this->goalP1.crossbar = { 0.0f, groundY - goalHeight, goalWidth, crossbarThickness };
 
     // Portería Derecha (J2)
-    this->goalP2.netArea = { 1080.0f - goalWidth, groundY - goalHeight, goalWidth, goalHeight };
-    this->goalP2.crossbar = { 1080.0f - goalWidth, groundY - goalHeight, goalWidth, crossbarThickness };
+    this->goalP2.netArea = {
+        PhysicsGeometry::fieldWidth - goalWidth,
+        groundY - goalHeight,
+        goalWidth,
+        goalHeight
+    };
+    this->goalP2.crossbar = {
+        PhysicsGeometry::fieldWidth - goalWidth,
+        groundY - goalHeight,
+        goalWidth,
+        crossbarThickness
+    };
 
     // Colocamos las entidades en posición de saque
     resetPositions();
@@ -59,6 +71,11 @@ void MainGameState::init()
 
 void MainGameState::handleInput()
 {
+    if (IsKeyPressed(KEY_F1))
+    {
+        debugEnabled = !debugEnabled;
+    }
+
     // Player 1
     if (IsKeyDown(KEY_A))
     {
@@ -138,18 +155,13 @@ void MainGameState::update(float deltaTime)
     this->ball.y += this->ball.vy;
 
     // Cajas de colisión (AABB)
-    Rectangle ballRect =
-    PhysicsGeometry::ballBounds(ball.x, ball.y);
+    Rectangle ballRect = PhysicsGeometry::ballBounds(ball.x, ball.y);
+    Rectangle player1Rect = PhysicsGeometry::playerBounds(player1.x, player1.y);
+    Rectangle player2Rect = PhysicsGeometry::playerBounds(player2.x, player2.y);
 
-    Rectangle player1Rect =
-    PhysicsGeometry::playerBounds(player1.x, player1.y);
-
-    Rectangle player2Rect =
-    PhysicsGeometry::playerBounds(player2.x, player2.y);
-
-    float suelo = 600.0f;
+    float suelo = PhysicsGeometry::groundY;
     float altoJugador = player1Rect.height;
-    float altoPelota = ballRect.height / 2;
+    float altoPelota = PhysicsGeometry::ballRadius;
 
     // 2. Colisión de Jugadores con el Suelo
     if (player1.y + altoJugador >= suelo) {
@@ -173,19 +185,24 @@ void MainGameState::update(float deltaTime)
         ball.x = altoPelota;
         ball.vx = -ball.vx * 0.7f;
     }
-    if (ball.x + altoPelota >= 1080 && ball.y < goalP2.netArea.y) {
-        ball.x = 1080 - altoPelota;
+    if (ball.x + altoPelota >= PhysicsGeometry::fieldWidth &&
+        ball.y < goalP2.netArea.y) {
+        ball.x = PhysicsGeometry::fieldWidth - altoPelota;
         ball.vx = -ball.vx * 0.7f;
     }
+
+    ballRect = PhysicsGeometry::ballBounds(ball.x, ball.y);
 
     // 5. Rebote en Largueros
     if (CheckCollisionRecs(ballRect, goalP1.crossbar)) {
         ball.vy = -ball.vy * 0.8f;
         ball.y = goalP1.crossbar.y - altoPelota;
+        ballRect = PhysicsGeometry::ballBounds(ball.x, ball.y);
     }
     if (CheckCollisionRecs(ballRect, goalP2.crossbar)) {
         ball.vy = -ball.vy * 0.8f;
         ball.y = goalP2.crossbar.y - altoPelota;
+        ballRect = PhysicsGeometry::ballBounds(ball.x, ball.y);
     }
 
     // 6. Detección de Gol
@@ -206,6 +223,10 @@ void MainGameState::update(float deltaTime)
     }
 
     // 7. Colisiones Pelota - Jugadores
+    ballRect = PhysicsGeometry::ballBounds(ball.x, ball.y);
+    player1Rect = PhysicsGeometry::playerBounds(player1.x, player1.y);
+    player2Rect = PhysicsGeometry::playerBounds(player2.x, player2.y);
+
     if (CheckCollisionRecs(ballRect, player1Rect)) {
         if (ballRect.x + ballRect.height / 2 >= player1.x + player1Rect.width) ball.vx = player1.vx + 0.5f;
         if (ballRect.x + ballRect.height / 2 <= player1.x) ball.vx = player1.vx - 0.5f;
@@ -233,8 +254,20 @@ void MainGameState::render()
     ClearBackground(RAYWHITE);
 
     // Suelo
-    DrawRectangle(0, 600, 1080, 120, GREEN);
-    DrawLine(0, 600, 1080, 600, DARKGREEN);
+    DrawRectangle(
+        0,
+        static_cast<int>(PhysicsGeometry::groundY),
+        static_cast<int>(PhysicsGeometry::fieldWidth),
+        120,
+        GREEN
+    );
+    DrawLine(
+        0,
+        static_cast<int>(PhysicsGeometry::groundY),
+        static_cast<int>(PhysicsGeometry::fieldWidth),
+        static_cast<int>(PhysicsGeometry::groundY),
+        DARKGREEN
+    );
 
     // Porterías (Redes y Largueros)
     DrawRectangleRec(goalP1.netArea, LIGHTGRAY);
@@ -243,18 +276,16 @@ void MainGameState::render()
     DrawRectangleRec(goalP2.crossbar, DARKGRAY);
 
     // Jugadores y Pelota
-    // Jugadores y Pelota
-    
     DrawRectangleRec(
-    PhysicsGeometry::playerBounds(player1.x, player1.y), RED
+        PhysicsGeometry::playerBounds(player1.x, player1.y), RED
     );
 
     DrawRectangleRec(
-    PhysicsGeometry::playerBounds(player2.x, player2.y), BLUE
+        PhysicsGeometry::playerBounds(player2.x, player2.y), BLUE
     );
 
     DrawCircleV(
-    {ball.x, ball.y}, PhysicsGeometry::ballRadius, BLACK
+        {ball.x, ball.y}, PhysicsGeometry::ballRadius, BLACK
     );
 
     // Marcador (HUD)
@@ -271,5 +302,72 @@ void MainGameState::render()
     Color timerColor = (matchTimer <= 10.0f) ? RED : DARKGRAY; // Se pone rojo en los últimos 10 segundos
     DrawText(timerBuffer, 540 - (MeasureText(timerBuffer, 30) / 2), 65, 30, timerColor);
 
+    if (debugEnabled)
+    {
+        renderDebug();
+    }
+
     EndDrawing();
+}
+
+void MainGameState::renderDebug() const
+{
+    Rectangle player1Bounds = PhysicsGeometry::playerBounds(player1.x, player1.y);
+    Rectangle player2Bounds = PhysicsGeometry::playerBounds(player2.x, player2.y);
+    Rectangle ballBounds = PhysicsGeometry::ballBounds(ball.x, ball.y);
+    Vector2 ballCenter = {ball.x, ball.y};
+
+    DebugDraw::box(player1Bounds, LIME);
+    DebugDraw::box(player2Bounds, LIME);
+    DebugDraw::box(ballBounds, GOLD);
+    DrawCircleLinesV(ballCenter, PhysicsGeometry::ballRadius, GRAY);
+
+    DebugDraw::box(goalP1.netArea, PURPLE);
+    DebugDraw::box(goalP2.netArea, PURPLE);
+    DebugDraw::box(goalP1.crossbar, ORANGE);
+    DebugDraw::box(goalP2.crossbar, ORANGE);
+
+    DrawLineEx(
+        {0.0f, PhysicsGeometry::groundY},
+        {PhysicsGeometry::fieldWidth, PhysicsGeometry::groundY},
+        2.0f,
+        LIME
+    );
+
+    DrawLineEx(
+        {0.0f, 0.0f},
+        {0.0f, goalP1.netArea.y},
+        2.0f,
+        ORANGE
+    );
+
+    DrawLineEx(
+        {PhysicsGeometry::fieldWidth, 0.0f},
+        {PhysicsGeometry::fieldWidth, goalP2.netArea.y},
+        2.0f,
+        ORANGE
+    );
+
+    const float velocityScale = 8.0f;
+    DebugDraw::arrow(
+        PhysicsGeometry::center(player1Bounds),
+        {player1.vx, player1.vy},
+        velocityScale,
+        SKYBLUE
+    );
+    DebugDraw::arrow(
+        PhysicsGeometry::center(player2Bounds),
+        {player2.vx, player2.vy},
+        velocityScale,
+        SKYBLUE
+    );
+    DebugDraw::arrow(
+        ballCenter,
+        {ball.vx, ball.vy},
+        velocityScale,
+        SKYBLUE
+    );
+
+    DrawCircleV(ballCenter, 3.0f, MAGENTA);
+    DrawText("Modo depuracion: F1 para cerrar", 20, 100, 18, DARKGRAY);
 }

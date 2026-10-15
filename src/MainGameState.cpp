@@ -55,10 +55,23 @@ void MainGameState::init()
 
     // Colocamos las entidades en posición de saque
     resetPositions();
+
+    // Inicializamos el temporizador y cartel de gol
+    this->goalBannerTimer = 0.0f;
+    this->goalBannerText = "";
+    this->goalBannerColor = BLACK;
 }
 
 void MainGameState::handleInput()
 {
+    // Si se está celebrando un gol, bloqueamos las entradas de los jugadores
+    if (this->goalBannerTimer > 0.0f)
+    {
+        player1.vx = 0.0f;
+        player2.vx = 0.0f;
+        return;
+    }
+
     // Player 1
     if (IsKeyDown(KEY_A))
     {
@@ -114,6 +127,18 @@ void MainGameState::handleInput()
 
 void MainGameState::update(float deltaTime)
 {
+    // Si hay un gol reciente, gestionamos la pausa para la celebración
+    if (this->goalBannerTimer > 0.0f)
+    {
+        this->goalBannerTimer -= deltaTime;
+        if (this->goalBannerTimer <= 0.0f)
+        {
+            this->goalBannerTimer = 0.0f;
+            resetPositions();
+        }
+        return; // Durante el cartel de gol se pausa la simulación
+    }
+
     this->matchTimer -= deltaTime;
     if (this->matchTimer <= 0.0f)
     {
@@ -246,15 +271,23 @@ void MainGameState::update(float deltaTime)
 
     if (CheckCollisionPointRec(ballCenter, goalP1.netArea)) {
         this->scoreP2++;
+        this->goalBannerTimer = 1.5f;
+        this->goalBannerText = "¡GOL DEL JUGADOR 2!";
+        this->goalBannerColor = BLUE;
+        this->ball.vx = 0.0f;
+        this->ball.vy = 0.0f;
         std::cout << "¡GOL DEL JUGADOR 2! Marcador: " << scoreP1 << " - " << scoreP2 << std::endl;
-        resetPositions();
         return;
     }
 
     if (CheckCollisionPointRec(ballCenter, goalP2.netArea)) {
         this->scoreP1++;
+        this->goalBannerTimer = 1.5f;
+        this->goalBannerText = "¡GOL DEL JUGADOR 1!";
+        this->goalBannerColor = RED;
+        this->ball.vx = 0.0f;
+        this->ball.vy = 0.0f;
         std::cout << "¡GOL DEL JUGADOR 1! Marcador: " << scoreP1 << " - " << scoreP2 << std::endl;
-        resetPositions();
         return;
     }
 
@@ -313,6 +346,22 @@ void MainGameState::render()
 
     Color timerColor = (matchTimer <= 10.0f) ? RED : DARKGRAY; // Se pone rojo en los últimos 10 segundos
     DrawText(timerBuffer, 540 - (MeasureText(timerBuffer, 30) / 2), 65, 30, timerColor);
+
+    // Cartel temporal de ¡GOL!
+    if (this->goalBannerTimer > 0.0f)
+    {
+        int bannerFontSize = 45;
+        int bannerTextWidth = MeasureText(this->goalBannerText.c_str(), bannerFontSize);
+        int bannerX = 540 - (bannerTextWidth / 2);
+        int bannerY = 270;
+
+        // Recuadro semitransparente con borde del color del goleador
+        DrawRectangle(bannerX - 40, bannerY - 15, bannerTextWidth + 80, 75, Fade(BLACK, 0.75f));
+        DrawRectangleLines(bannerX - 40, bannerY - 15, bannerTextWidth + 80, 75, this->goalBannerColor);
+
+        // Texto del gol
+        DrawText(this->goalBannerText.c_str(), bannerX, bannerY, bannerFontSize, this->goalBannerColor);
+    }
 
     EndDrawing();
 }

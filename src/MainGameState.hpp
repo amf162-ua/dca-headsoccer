@@ -4,6 +4,7 @@ extern "C" {
     #include <raylib.h>
 }
 #include "physics/physics.hpp"
+#include <string>
 
 struct Player {
     float x;
@@ -41,6 +42,10 @@ class MainGameState : public GameState
         int scoreP2;
 
         float matchTimer; // Temporizador del partido
+
+        float goalBannerTimer;       // Temporizador para el cartel de gol
+        std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)
+        Color goalBannerColor;       // Color del cartel
 
         void resetPositions();
 

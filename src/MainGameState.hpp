@@ -10,6 +10,7 @@ struct Player {
     float y;
     float vx;
     float vy;
+    bool isGrounded; //comprobamos si el jugador está tocando el suelo
 };
 
 struct Goal {

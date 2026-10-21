@@ -1,5 +1,7 @@
 #pragma once
 #include "body.hpp"
+#include <raymath.h>
+#include <cmath>
 
 
 namespace Collision
@@ -10,5 +12,5 @@ namespace Collision
         float penetration = 0.0f;    // Profundidad de penetración
     };
     Contact detectCircleAABB(const Body& circle, const Body& rectangle);
-    void resolveContact(Body& circle, const Body& rectangle, const Contact& contact, float e); // e significa restitución (Esta en el png bueno de ideas, MATEEESSss)
+    void resolveContact(Body& circle, Body& rectangle, const Contact& contact, float e); // e significa restitución (Esta en el png bueno de ideas, MATEEESSss)
 }

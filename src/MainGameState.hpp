@@ -4,26 +4,18 @@ extern "C" {
     #include <raylib.h>
 }
 #include "physics/physics.hpp"
+#include "physics/body.hpp"
+#include "physics/collision.hpp"
 #include <string>
 
 struct Player {
-    float x;
-    float y;
-    float vx;
-    float vy;
+    Body body;       // Posicion (CENTRO), velocidad (px/s) y caja del jugador
     bool isGrounded; //comprobamos si el jugador está tocando el suelo
 };
 
 struct Goal {
     Rectangle netArea;   // Área de la red
-    Rectangle crossbar;  // Larguero superior
-};
-
-struct Ball {
-    float x;
-    float y;
-    float vx;
-    float vy;
+    Body crossbar;       // Larguero superior (cuerpo STATIC para que la pelota rebote con las fisicas)
 };
 
 class MainGameState : public GameState
@@ -32,7 +24,7 @@ class MainGameState : public GameState
         Player player1;
         Player player2;
         Player npc;
-        Ball ball;
+        Body ball;           // Pelota: cuerpo circular DYNAMIC
         Physics physics;
 
         Goal goalP1;
@@ -48,6 +40,8 @@ class MainGameState : public GameState
         Color goalBannerColor;       // Color del cartel
 
         void resetPositions();
+        void keepPlayerInField(Player& player);                                // Suelo y limites de pantalla
+        Collision::Contact collideBallWith(Body& other, float restitution);   // Detecta y resuelve pelota vs rectangulo
 
     public:
         MainGameState();

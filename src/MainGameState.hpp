@@ -38,10 +38,15 @@ class MainGameState : public GameState
         float goalBannerTimer;       // Temporizador para el cartel de gol
         std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)
         Color goalBannerColor;       // Color del cartel
+        bool debugEnabled;
+        bool trajectoryEnabled;
+        float lastDeltaTime;
 
         void resetPositions();
         void keepPlayerInField(Player& player);                                // Suelo y limites de pantalla
-        Collision::Contact collideBallWith(Body& other, float restitution);   // Detecta y resuelve pelota vs rectangulo
+        Collision::Contact collideBallWith(Body& circle, Body& other, float restitution);
+        void renderDebug();
+        void renderBallTrajectory();
 
     public:
         MainGameState();

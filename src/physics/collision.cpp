@@ -46,10 +46,10 @@ namespace Collision{
             return result; // isColliding sigue a false
         }
 
-        /*  Caso raro: el centro del circulo esta ^dentro del rectangulo 
+        /*  Caso raro: el centro del circulo esta ^dentro del rectangulo
             Clamp no ha recortado nada, asi que Q == centro y d = (0,0).
             Un vector de longitud 0 no tiene direccion -> no se puede normalizar (0/0 = NaN).
-        */ 
+        */
         if (distanceSquared == 0.0f) {
             float toLeft   = circlePos.x - rectLeft;    // Distancia del centro a cada cara
             float toRight  = rectRight - circlePos.x;
@@ -88,18 +88,18 @@ namespace Collision{
 
 
     /*
-        Resolver la colisión entre un circulo y un rectangulo. 
+        Resolver la colisión entre un circulo y un rectangulo.
 
         !!!!!!!! COMPROBAR DESPUES DE IMPLEMENTAR Y PROBAR !!!!!!!!!!
-        No creo que haga falta una fucnión nueva para choque jugador-jugador, solo habría que añadir 
-        algunas condiciones para separar jugador de circulo y aplicar reglas parecidas o iguales. 
-        No hace falta que tenga en cuenta la gravedad, ya que aunq sea un vector de fuerza mas, ni 
+        No creo que haga falta una fucnión nueva para choque jugador-jugador, solo habría que añadir
+        algunas condiciones para separar jugador de circulo y aplicar reglas parecidas o iguales.
+        No hace falta que tenga en cuenta la gravedad, ya que aunq sea un vector de fuerza mas, ni
         la masa ni la gravedad afectan a la resolución de la colisión, solo a la aceleración y velocidad.
 
         para descartar circle y square:
         if (circle.getBodyShape() != Body::bodyShape::CIRCLE) return; ???????????????????? por si acaso
 
-        y tambien alomejor la pelota si se queda en la cabeza del jugador, hace 
+        y tambien alomejor la pelota si se queda en la cabeza del jugador, hace
         tembleques raros por estar colisionando constantemente y no se verá nada fluido,
         si passa supongo que con poner e = 0 cuando vn sea pequeño, o algo asi, se soluciona.
     */
@@ -116,7 +116,7 @@ namespace Collision{
 
         /*  ---- 1. Sacar la pelota del jugador (corrección de posición) ----
             Como el juego va por frames, cuando detectamos el choque la pelota YA se ha metido
-            "penetration" px dentro del jugador, que es el problema que nos comenttó el profe 
+            "penetration" px dentro del jugador, que es el problema que nos comenttó el profe
             en clase.
              Si solo cambiamos la velocidad:
               - La pelota sigue dentro, y el frame siguiente se vuelve a detectar el choque.
@@ -125,7 +125,7 @@ namespace Collision{
             (la normal apunta del jugador a la pelota), y asi queda justo tocando el borde.
 
             Es como si la pelota se hubiera quedado pegada al jugador, y ahora la soltamos hacia fuera.
-            Si el cuerpo es STATIC, invMassRect = 0, asi que solo se mueve la pelota. 
+            Si el cuerpo es STATIC, invMassRect = 0, asi que solo se mueve la pelota.
             Si el cuerpo es DYNAMIC, invMassRect > 0, asi que se mueven los dos.
 
             Si los dos se pueden mover, el empujon se reparte segun la masa: el ligero se mueve mas.

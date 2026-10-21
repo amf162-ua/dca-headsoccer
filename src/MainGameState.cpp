@@ -4,21 +4,24 @@
 #include <iostream>
 #include <cmath>
 
+#include "debug/DebugDraw.hpp"
+#include "physics/PhysicsGeometry.hpp"
+
 /*
     Todas las velocidades van en px/s y las aceleraciones en px/s^2 (se multiplican por deltaTime).
     Los valores son los de antes (que iban por frame) multiplicados por 60, para que el juego se sienta igual.
 */
 namespace
 {
-    const float GROUND_Y = 600.0f;
-    const float FIELD_WIDTH = 1080.0f;
+    const float GROUND_Y = PhysicsGeometry::groundY;
+    const float FIELD_WIDTH = PhysicsGeometry::fieldWidth;
 
-    const float PLAYER_WIDTH = 50.0f;
-    const float PLAYER_HEIGHT = 80.0f;
+    const float PLAYER_WIDTH = PhysicsGeometry::playerWidth;
+    const float PLAYER_HEIGHT = PhysicsGeometry::playerHeight;
     const float PLAYER_SPEED = 300.0f;  // Antes 5 px/frame
     const float JUMP_SPEED = -420.0f;   // Antes -7 px/frame
 
-    const float BALL_RADIUS = 20.0f;
+    const float BALL_RADIUS = PhysicsGeometry::ballRadius;
     const float BALL_FRICTION = 120.0f;   // Antes 2 px/frame por segundo
     const float CROSSBAR_PUSH = 120.0f;   // Empujon si la pelota se queda parada en el larguero (antes 2 px/frame)
 
@@ -30,7 +33,10 @@ namespace
 }
 
 // Constructor: Inicializamos el marcador a 0
-MainGameState::MainGameState() : scoreP1(0), scoreP2(0)
+MainGameState::MainGameState()
+    : scoreP1(0), scoreP2(0), goalBannerTimer(0.0f),
+      goalBannerText(""), goalBannerColor(BLACK), debugEnabled(false),
+      trajectoryEnabled(false), lastDeltaTime(1.0f / 60.0f)
 {
 }
 
@@ -102,6 +108,20 @@ void MainGameState::init()
 
 void MainGameState::handleInput()
 {
+    if (IsKeyPressed(KEY_F1))
+    {
+        debugEnabled = !debugEnabled;
+        if (!debugEnabled)
+        {
+            trajectoryEnabled = false;
+        }
+    }
+
+    if (debugEnabled && IsKeyPressed(KEY_F2))
+    {
+        trajectoryEnabled = !trajectoryEnabled;
+    }
+
     Vector2& vel1 = player1.body.getVelocity();
     Vector2& vel2 = player2.body.getVelocity();
 
@@ -187,15 +207,21 @@ void MainGameState::keepPlayerInField(Player& player)
 }
 
 // Choque de la pelota contra un rectángulo (jugador o larguero) usando nuestras fisicas
-Collision::Contact MainGameState::collideBallWith(Body& other, float restitution)
+Collision::Contact MainGameState::collideBallWith(
+    Body& circle,
+    Body& other,
+    float restitution
+)
 {
-    Collision::Contact contact = Collision::detectCircleAABB(this->ball, other);
-    Collision::resolveContact(this->ball, other, contact, restitution);
+    Collision::Contact contact = Collision::detectCircleAABB(circle, other);
+    Collision::resolveContact(circle, other, contact, restitution);
     return contact;
 }
 
 void MainGameState::update(float deltaTime)
 {
+    lastDeltaTime = deltaTime;
+
     // Si hay un gol reciente, gestionamos la pausa para la celebración
     if (this->goalBannerTimer > 0.0f)
     {
@@ -302,12 +328,20 @@ void MainGameState::update(float deltaTime)
     }
 
     // 6. Rebote en Largueros (con nuestras fisicas: rebota bien por arriba, por abajo y por el lado)
-    Collision::Contact crossbarContact = collideBallWith(goalP1.crossbar, E_CROSSBAR);
+    Collision::Contact crossbarContact = collideBallWith(
+        this->ball,
+        goalP1.crossbar,
+        E_CROSSBAR
+    );
     // Si la pelota está encima (normal hacia arriba) y casi parada, la empujamos hacia el campo
     if (crossbarContact.isColliding && crossbarContact.normal.y < -0.5f && fabsf(ballVel.x) < 30.0f)
         ballVel.x = CROSSBAR_PUSH;
 
-    crossbarContact = collideBallWith(goalP2.crossbar, E_CROSSBAR);
+    crossbarContact = collideBallWith(
+        this->ball,
+        goalP2.crossbar,
+        E_CROSSBAR
+    );
     if (crossbarContact.isColliding && crossbarContact.normal.y < -0.5f && fabsf(ballVel.x) < 30.0f)
         ballVel.x = -CROSSBAR_PUSH;
 
@@ -333,8 +367,8 @@ void MainGameState::update(float deltaTime)
     }
 
     // 8. Colisiones Pelota - Jugadores (pasos del png: normal, velocidad relativa, rebote con e)
-    collideBallWith(this->player1.body, E_PLAYER);
-    collideBallWith(this->player2.body, E_PLAYER);
+    collideBallWith(this->ball, this->player1.body, E_PLAYER);
+    collideBallWith(this->ball, this->player2.body, E_PLAYER);
 }
 
 void MainGameState::render()
@@ -371,6 +405,11 @@ void MainGameState::render()
     Color timerColor = (matchTimer <= 10.0f) ? RED : DARKGRAY; // Se pone rojo en los últimos 10 segundos
     DrawText(timerBuffer, 540 - (MeasureText(timerBuffer, 30) / 2), 65, 30, timerColor);
 
+    if (debugEnabled)
+    {
+        renderDebug();
+    }
+
     // Cartel temporal de ¡GOL!
     if (this->goalBannerTimer > 0.0f)
     {
@@ -388,4 +427,198 @@ void MainGameState::render()
     }
 
     EndDrawing();
+}
+
+void MainGameState::renderDebug()
+{
+    if (trajectoryEnabled)
+    {
+        renderBallTrajectory();
+    }
+
+    Rectangle player1Bounds = player1.body.getRect();
+    Rectangle player2Bounds = player2.body.getRect();
+    Rectangle ballBounds = ball.getRect();
+    Vector2 ballPosition = ball.getPosition();
+
+    DebugDraw::box(player1Bounds, LIME);
+    DebugDraw::box(player2Bounds, LIME);
+    DebugDraw::box(ballBounds, GOLD);
+    DrawCircleLinesV(ballPosition, ball.getRadius(), GRAY);
+
+    DebugDraw::box(goalP1.netArea, PURPLE);
+    DebugDraw::box(goalP2.netArea, PURPLE);
+    DebugDraw::box(goalP1.crossbar.getRect(), ORANGE);
+    DebugDraw::box(goalP2.crossbar.getRect(), ORANGE);
+
+    DrawLineEx(
+        {0.0f, GROUND_Y},
+        {FIELD_WIDTH, GROUND_Y},
+        2.0f,
+        LIME
+    );
+    DrawLineEx(
+        {0.0f, 0.0f},
+        {0.0f, goalP1.netArea.y},
+        2.0f,
+        ORANGE
+    );
+    DrawLineEx(
+        {FIELD_WIDTH, 0.0f},
+        {FIELD_WIDTH, goalP2.netArea.y},
+        2.0f,
+        ORANGE
+    );
+
+    const float velocityScale = 0.08f;
+    DebugDraw::arrow(
+        PhysicsGeometry::center(player1Bounds),
+        player1.body.getVelocity(),
+        velocityScale,
+        SKYBLUE
+    );
+    DebugDraw::arrow(
+        PhysicsGeometry::center(player2Bounds),
+        player2.body.getVelocity(),
+        velocityScale,
+        SKYBLUE
+    );
+    DebugDraw::arrow(
+        ballPosition,
+        ball.getVelocity(),
+        velocityScale,
+        SKYBLUE
+    );
+
+    DrawCircleV(ballPosition, 3.0f, MAGENTA);
+    const char* trajectoryMessage = trajectoryEnabled
+        ? "F2: ocultar trayectoria"
+        : "F2: mostrar trayectoria";
+    DrawText("Modo depuracion: F1 para cerrar", 20, 100, 18, DARKGRAY);
+    DrawText(trajectoryMessage, 20, 122, 18, DARKGRAY);
+    if (trajectoryEnabled)
+    {
+        DrawText("Prediccion aproximada; jugadores inmoviles", 20, 144, 14, GRAY);
+    }
+}
+
+void MainGameState::renderBallTrajectory()
+{
+    Body predictedBall = ball;
+    Body stationaryPlayer1 = player1.body;
+    Body stationaryPlayer2 = player2.body;
+    stationaryPlayer1.setVelocity(0.0f, 0.0f);
+    stationaryPlayer2.setVelocity(0.0f, 0.0f);
+
+    float predictionDeltaTime = lastDeltaTime;
+    if (predictionDeltaTime <= 0.0f)
+    {
+        predictionDeltaTime = 1.0f / 60.0f;
+    }
+
+    Vector2 previousPosition = predictedBall.getPosition();
+    DrawCircleV(previousPosition, 3.0f, SKYBLUE);
+
+    const int maximumSteps = 240;
+    for (int step = 0; step < maximumSteps; step++)
+    {
+        Vector2& predictedVelocity = predictedBall.getVelocity();
+        physics.Gravity(predictedVelocity.y, predictionDeltaTime);
+        physics.ApplyFriction(predictedVelocity.x, BALL_FRICTION, predictionDeltaTime);
+        physics.Integrate(predictedBall, predictionDeltaTime);
+
+        Vector2& predictedPosition = predictedBall.getPosition();
+        const float ballRadius = predictedBall.getRadius();
+        bool bounced = false;
+
+        if (predictedPosition.y + ballRadius >= GROUND_Y)
+        {
+            predictedPosition.y = GROUND_Y - ballRadius;
+            predictedVelocity.y = -predictedVelocity.y * E_GROUND;
+            bounced = true;
+        }
+
+        if (predictedPosition.x - ballRadius <= 0.0f &&
+            predictedPosition.y < goalP1.netArea.y)
+        {
+            predictedPosition.x = ballRadius;
+            predictedVelocity.x = -predictedVelocity.x * E_WALL;
+            bounced = true;
+        }
+
+        if (predictedPosition.x + ballRadius >= FIELD_WIDTH &&
+            predictedPosition.y < goalP2.netArea.y)
+        {
+            predictedPosition.x = FIELD_WIDTH - ballRadius;
+            predictedVelocity.x = -predictedVelocity.x * E_WALL;
+            bounced = true;
+        }
+
+        Collision::Contact contact = collideBallWith(
+            predictedBall,
+            goalP1.crossbar,
+            E_CROSSBAR
+        );
+        if (contact.isColliding)
+        {
+            bounced = true;
+            if (contact.normal.y < -0.5f && fabsf(predictedVelocity.x) < 30.0f)
+            {
+                predictedVelocity.x = CROSSBAR_PUSH;
+            }
+        }
+
+        contact = collideBallWith(
+            predictedBall,
+            goalP2.crossbar,
+            E_CROSSBAR
+        );
+        if (contact.isColliding)
+        {
+            bounced = true;
+            if (contact.normal.y < -0.5f && fabsf(predictedVelocity.x) < 30.0f)
+            {
+                predictedVelocity.x = -CROSSBAR_PUSH;
+            }
+        }
+
+        Vector2 currentPosition = predictedBall.getPosition();
+        DrawLineEx(previousPosition, currentPosition, 2.0f, Fade(SKYBLUE, 0.8f));
+        if (step % 8 == 0)
+        {
+            DrawCircleV(currentPosition, 2.5f, SKYBLUE);
+        }
+        if (bounced)
+        {
+            DrawCircleV(currentPosition, 4.0f, ORANGE);
+        }
+
+        if (CheckCollisionPointRec(currentPosition, goalP1.netArea) ||
+            CheckCollisionPointRec(currentPosition, goalP2.netArea))
+        {
+            DrawCircleV(currentPosition, 5.0f, GREEN);
+            return;
+        }
+
+        Collision::Contact playerContact = Collision::detectCircleAABB(
+            predictedBall,
+            stationaryPlayer1
+        );
+        if (!playerContact.isColliding)
+        {
+            playerContact = Collision::detectCircleAABB(
+                predictedBall,
+                stationaryPlayer2
+            );
+        }
+        if (playerContact.isColliding)
+        {
+            DrawCircleV(currentPosition, 5.0f, RED);
+            return;
+        }
+
+        previousPosition = currentPosition;
+    }
+
+    DrawCircleV(previousPosition, 4.0f, GRAY);
 }

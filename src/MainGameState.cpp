@@ -70,6 +70,11 @@ void MainGameState::init()
 
     // Colocamos las entidades en posición de saque
     resetPositions();
+
+    // Inicializamos el temporizador y cartel de gol
+    this->goalBannerTimer = 0.0f;
+    this->goalBannerText = "";
+    this->goalBannerColor = BLACK;
 }
 
 void MainGameState::handleInput()
@@ -86,6 +91,14 @@ void MainGameState::handleInput()
     if (debugEnabled && IsKeyPressed(KEY_F2))
     {
         trajectoryEnabled = !trajectoryEnabled;
+    }
+
+    // Durante la celebración se bloquea el movimiento de los jugadores.
+    if (this->goalBannerTimer > 0.0f)
+    {
+        player1.vx = 0.0f;
+        player2.vx = 0.0f;
+        return;
     }
 
     // Player 1
@@ -145,6 +158,18 @@ void MainGameState::update(float deltaTime)
 {
     lastDeltaTime = deltaTime;
 
+    // Durante el cartel de gol se pausa el partido.
+    if (this->goalBannerTimer > 0.0f)
+    {
+        this->goalBannerTimer -= deltaTime;
+        if (this->goalBannerTimer <= 0.0f)
+        {
+            this->goalBannerTimer = 0.0f;
+            resetPositions();
+        }
+        return;
+    }
+
     this->matchTimer -= deltaTime;
     if (this->matchTimer <= 0.0f)
     {
@@ -186,6 +211,62 @@ void MainGameState::update(float deltaTime)
         player2.isGrounded = true;
     }
 
+    // Colisión entre jugadores usando sus cajas de colisión actuales.
+    player1Rect = PhysicsGeometry::playerBounds(player1.x, player1.y);
+    player2Rect = PhysicsGeometry::playerBounds(player2.x, player2.y);
+    if (CheckCollisionRecs(player1Rect, player2Rect))
+    {
+        float overlapX;
+        if (player1.x < player2.x)
+        {
+            overlapX = player1.x + player1Rect.width - player2.x;
+        }
+        else
+        {
+            overlapX = player2.x + player2Rect.width - player1.x;
+        }
+
+        float overlapY;
+        if (player1.y < player2.y)
+        {
+            overlapY = player1.y + player1Rect.height - player2.y;
+        }
+        else
+        {
+            overlapY = player2.y + player2Rect.height - player1.y;
+        }
+
+        if (overlapX < overlapY)
+        {
+            if (player1.x < player2.x)
+            {
+                player1.x -= overlapX / 2.0f;
+                player2.x += overlapX / 2.0f;
+                if (player1.vx > 0.0f) player1.vx = 0.0f;
+                if (player2.vx < 0.0f) player2.vx = 0.0f;
+            }
+            else
+            {
+                player1.x += overlapX / 2.0f;
+                player2.x -= overlapX / 2.0f;
+                if (player1.vx < 0.0f) player1.vx = 0.0f;
+                if (player2.vx > 0.0f) player2.vx = 0.0f;
+            }
+        }
+        else if (player1.y < player2.y)
+        {
+            player1.y -= overlapY;
+            player1.vy = 0.0f;
+            player1.isGrounded = true;
+        }
+        else
+        {
+            player2.y -= overlapY;
+            player2.vy = 0.0f;
+            player2.isGrounded = true;
+        }
+    }
+
     // Evita que los jugadores salgan por los lados del campo.
     if (player1.x < 0.0f) player1.x = 0.0f;
     if (player1.x + player1Rect.width > PhysicsGeometry::fieldWidth)
@@ -197,6 +278,10 @@ void MainGameState::update(float deltaTime)
     {
         player2.x = PhysicsGeometry::fieldWidth - player2Rect.width;
     }
+
+    // Actualizamos las cajas después de resolver colisiones y límites.
+    player1Rect = PhysicsGeometry::playerBounds(player1.x, player1.y);
+    player2Rect = PhysicsGeometry::playerBounds(player2.x, player2.y);
 
     // 3. Colisión de Pelota con el Suelo
     if (ball.y + altoPelota >= suelo) {
@@ -238,15 +323,23 @@ void MainGameState::update(float deltaTime)
 
     if (CheckCollisionPointRec(ballCenter, goalP1.netArea)) {
         this->scoreP2++;
+        this->goalBannerTimer = 1.5f;
+        this->goalBannerText = "¡GOL DEL JUGADOR 2!";
+        this->goalBannerColor = BLUE;
+        this->ball.vx = 0.0f;
+        this->ball.vy = 0.0f;
         std::cout << "¡GOL DEL JUGADOR 2! Marcador: " << scoreP1 << " - " << scoreP2 << std::endl;
-        resetPositions();
         return;
     }
 
     if (CheckCollisionPointRec(ballCenter, goalP2.netArea)) {
         this->scoreP1++;
+        this->goalBannerTimer = 1.5f;
+        this->goalBannerText = "¡GOL DEL JUGADOR 1!";
+        this->goalBannerColor = RED;
+        this->ball.vx = 0.0f;
+        this->ball.vy = 0.0f;
         std::cout << "¡GOL DEL JUGADOR 1! Marcador: " << scoreP1 << " - " << scoreP2 << std::endl;
-        resetPositions();
         return;
     }
 
@@ -333,6 +426,19 @@ void MainGameState::render()
     if (debugEnabled)
     {
         renderDebug();
+    }
+
+    // Cartel temporal de ¡GOL!
+    if (this->goalBannerTimer > 0.0f)
+    {
+        int bannerFontSize = 45;
+        int bannerTextWidth = MeasureText(this->goalBannerText.c_str(), bannerFontSize);
+        int bannerX = 540 - (bannerTextWidth / 2);
+        int bannerY = 270;
+
+        DrawRectangle(bannerX - 40, bannerY - 15, bannerTextWidth + 80, 75, Fade(BLACK, 0.75f));
+        DrawRectangleLines(bannerX - 40, bannerY - 15, bannerTextWidth + 80, 75, this->goalBannerColor);
+        DrawText(this->goalBannerText.c_str(), bannerX, bannerY, bannerFontSize, this->goalBannerColor);
     }
 
     EndDrawing();

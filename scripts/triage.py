@@ -45,7 +45,8 @@ def analyze_issue_with_openrouter(title, body):
         "temperature": 0.2
     }
 
-    response = requests.post("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", headers=headers, json=data)
+    # ✅ CORRECTO (URL pura como string)
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
     response.raise_for_status()
     
     content = response.json()["choices"][0]["message"]["content"].strip()

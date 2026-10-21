@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import requests
 from github import Github
 
@@ -7,7 +8,7 @@ from github import Github
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY")
-ISSUE_NUMBER = int(os.getenv("ISSUE_NUMBER"))
+ISSUE_NUMBER = int(os.getenv("ISSUE_NUMBER", "0"))
 ISSUE_TITLE = os.getenv("ISSUE_TITLE", "")
 ISSUE_BODY = os.getenv("ISSUE_BODY", "")
 
@@ -18,7 +19,7 @@ AVAILABLE_LABELS = ["bug", "documentation", "enhancement", "critical", "frontend
 def analyze_issue_with_openrouter(title, body):
     prompt = f"""
     Eres un asistente de triaje de proyectos de software.
-    Analiza el siguiente issue y responde ÚNICAMENTE con un JSON válido (sin markdown ni bloques de código ```json):
+    Analiza el siguiente issue y responde ÚNICAMENTE con un objeto JSON válido.
 
     Título: {title}
     Descripción: {body}
@@ -45,23 +46,41 @@ def analyze_issue_with_openrouter(title, body):
         "temperature": 0.2
     }
 
-    # ✅ CORRECTO (URL pura como string)
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    response.raise_for_status()
+    # URL pura sin sintaxis de markdown
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=data,
+        timeout=30
+    )
     
+    if response.status_code != 200:
+        print(f"Error HTTP en OpenRouter ({response.status_code}): {response.text}")
+        response.raise_for_status()
+
     content = response.json()["choices"][0]["message"]["content"].strip()
-    # Limpiar formato si el modelo devuelve delimitadores markdown
-    if content.startswith("```"):
-        content = content.split("\n", 1)[1].rsplit("\n", 1)[0]
-    
+
+    # Extraer el bloque JSON mediante expresiones regulares si la IA incluye markdown
+    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+    if json_match:
+        content = json_match.group(0)
+
     return json.loads(content)
 
 def main():
+    if not ISSUE_NUMBER or not REPO_NAME:
+        print("Error: ISSUE_NUMBER o GITHUB_REPOSITORY no están definidos.")
+        return
+
     print(f"Iniciando triaje para Issue #{ISSUE_NUMBER} en {REPO_NAME}...")
     
-    # Obtener análisis de IA
-    ai_result = analyze_issue_with_openrouter(ISSUE_TITLE, ISSUE_BODY)
-    print(f"Resultado IA: {ai_result}")
+    try:
+        # Obtener análisis de IA
+        ai_result = analyze_issue_with_openrouter(ISSUE_TITLE, ISSUE_BODY)
+        print(f"Resultado IA: {ai_result}")
+    except Exception as e:
+        print(f"Error procesando la respuesta con OpenRouter: {e}")
+        return
 
     # Conectar con la API de GitHub
     g = Github(GITHUB_TOKEN)
@@ -69,7 +88,8 @@ def main():
     issue = repo.get_issue(number=ISSUE_NUMBER)
 
     # 1. Aplicar Etiquetas (Labels)
-    labels_to_apply = [lbl for lbl in ai_result.get("labels", []) if lbl in AVAILABLE_LABELS]
+    raw_labels = ai_result.get("labels", [])
+    labels_to_apply = [lbl for lbl in raw_labels if lbl in AVAILABLE_LABELS]
     if labels_to_apply:
         issue.add_to_labels(*labels_to_apply)
         print(f"Etiquetas aplicadas: {labels_to_apply}")
@@ -79,6 +99,8 @@ def main():
     if assignee and assignee in TEAM_MEMBERS:
         issue.add_to_assignees(assignee)
         print(f"Asignado a: {assignee}")
+    else:
+        print(f"Sin asignación directa válida (recibido: '{assignee}').")
 
     # 3. Publicar comentario diagnóstico
     comment_text = ai_result.get("comment", "")

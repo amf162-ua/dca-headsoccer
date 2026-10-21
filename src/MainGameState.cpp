@@ -8,7 +8,8 @@
 
 // Constructor: Inicializamos el marcador a 0
 MainGameState::MainGameState()
-    : scoreP1(0), scoreP2(0), debugEnabled(false)
+    : scoreP1(0), scoreP2(0), debugEnabled(false),
+      trajectoryEnabled(false), lastDeltaTime(1.0f / 60.0f)
 {
 }
 
@@ -74,6 +75,15 @@ void MainGameState::handleInput()
     if (IsKeyPressed(KEY_F1))
     {
         debugEnabled = !debugEnabled;
+        if (!debugEnabled)
+        {
+            trajectoryEnabled = false;
+        }
+    }
+
+    if (debugEnabled && IsKeyPressed(KEY_F2))
+    {
+        trajectoryEnabled = !trajectoryEnabled;
     }
 
     // Player 1
@@ -135,6 +145,8 @@ void MainGameState::handleInput()
 
 void MainGameState::update(float deltaTime)
 {
+    lastDeltaTime = deltaTime;
+
     this->matchTimer -= deltaTime;
     if (this->matchTimer <= 0.0f)
     {
@@ -310,8 +322,13 @@ void MainGameState::render()
     EndDrawing();
 }
 
-void MainGameState::renderDebug() const
+void MainGameState::renderDebug()
 {
+    if (trajectoryEnabled)
+    {
+        renderBallTrajectory();
+    }
+
     Rectangle player1Bounds = PhysicsGeometry::playerBounds(player1.x, player1.y);
     Rectangle player2Bounds = PhysicsGeometry::playerBounds(player2.x, player2.y);
     Rectangle ballBounds = PhysicsGeometry::ballBounds(ball.x, ball.y);
@@ -369,5 +386,122 @@ void MainGameState::renderDebug() const
     );
 
     DrawCircleV(ballCenter, 3.0f, MAGENTA);
+    const char* trajectoryMessage = trajectoryEnabled
+        ? "F2: ocultar trayectoria"
+        : "F2: mostrar trayectoria";
     DrawText("Modo depuracion: F1 para cerrar", 20, 100, 18, DARKGRAY);
+    DrawText(trajectoryMessage, 20, 122, 18, DARKGRAY);
+    if (trajectoryEnabled)
+    {
+        DrawText("Prediccion aproximada; jugadores inmoviles", 20, 144, 14, GRAY);
+    }
+}
+
+void MainGameState::renderBallTrajectory()
+{
+    Ball predictedBall = ball;
+    Rectangle player1Bounds = PhysicsGeometry::playerBounds(player1.x, player1.y);
+    Rectangle player2Bounds = PhysicsGeometry::playerBounds(player2.x, player2.y);
+
+    float predictionDeltaTime = lastDeltaTime;
+    if (predictionDeltaTime <= 0.0f)
+    {
+        predictionDeltaTime = 1.0f / 60.0f;
+    }
+
+    Vector2 previousPosition = {predictedBall.x, predictedBall.y};
+    DrawCircleV(previousPosition, 3.0f, SKYBLUE);
+
+    const int maximumSteps = 240;
+    for (int step = 0; step < maximumSteps; step++)
+    {
+        predictedBall.x += predictedBall.vx;
+        predictedBall.y += predictedBall.vy;
+
+        bool bounced = false;
+        const float ballRadius = PhysicsGeometry::ballRadius;
+
+        if (predictedBall.y + ballRadius >= PhysicsGeometry::groundY)
+        {
+            predictedBall.y = PhysicsGeometry::groundY - ballRadius;
+            predictedBall.vy = -predictedBall.vy * 0.6f;
+            bounced = true;
+        }
+
+        if (predictedBall.x - ballRadius <= 0.0f &&
+            predictedBall.y < goalP1.netArea.y)
+        {
+            predictedBall.x = ballRadius;
+            predictedBall.vx = -predictedBall.vx * 0.7f;
+            bounced = true;
+        }
+
+        if (predictedBall.x + ballRadius >= PhysicsGeometry::fieldWidth &&
+            predictedBall.y < goalP2.netArea.y)
+        {
+            predictedBall.x = PhysicsGeometry::fieldWidth - ballRadius;
+            predictedBall.vx = -predictedBall.vx * 0.7f;
+            bounced = true;
+        }
+
+        Rectangle predictedBounds = PhysicsGeometry::ballBounds(
+            predictedBall.x,
+            predictedBall.y
+        );
+
+        if (CheckCollisionRecs(predictedBounds, goalP1.crossbar))
+        {
+            predictedBall.vy = -predictedBall.vy * 0.8f;
+            predictedBall.y = goalP1.crossbar.y - ballRadius;
+            predictedBounds = PhysicsGeometry::ballBounds(
+                predictedBall.x,
+                predictedBall.y
+            );
+            bounced = true;
+        }
+
+        if (CheckCollisionRecs(predictedBounds, goalP2.crossbar))
+        {
+            predictedBall.vy = -predictedBall.vy * 0.8f;
+            predictedBall.y = goalP2.crossbar.y - ballRadius;
+            predictedBounds = PhysicsGeometry::ballBounds(
+                predictedBall.x,
+                predictedBall.y
+            );
+            bounced = true;
+        }
+
+        Vector2 currentPosition = {predictedBall.x, predictedBall.y};
+        DrawLineEx(previousPosition, currentPosition, 2.0f, Fade(SKYBLUE, 0.8f));
+
+        if (step % 8 == 0)
+        {
+            DrawCircleV(currentPosition, 2.5f, SKYBLUE);
+        }
+
+        if (bounced)
+        {
+            DrawCircleV(currentPosition, 4.0f, ORANGE);
+        }
+
+        if (CheckCollisionPointRec(currentPosition, goalP1.netArea) ||
+            CheckCollisionPointRec(currentPosition, goalP2.netArea))
+        {
+            DrawCircleV(currentPosition, 5.0f, GREEN);
+            return;
+        }
+
+        if (CheckCollisionRecs(predictedBounds, player1Bounds) ||
+            CheckCollisionRecs(predictedBounds, player2Bounds))
+        {
+            DrawCircleV(currentPosition, 5.0f, RED);
+            return;
+        }
+
+        physics.Gravity(predictedBall.vy, predictionDeltaTime);
+        physics.ApplyFriction(predictedBall.vx, 2.0f, predictionDeltaTime);
+        previousPosition = currentPosition;
+    }
+
+    DrawCircleV(previousPosition, 4.0f, GRAY);
 }

@@ -41,9 +41,12 @@ class MainGameState : public GameState
 
         float matchTimer; // Temporizador del partido
         bool debugEnabled;
+        bool trajectoryEnabled;
+        float lastDeltaTime;
 
         void resetPositions();
-        void renderDebug() const;
+        void renderDebug();
+        void renderBallTrajectory();
 
     public:
         MainGameState();

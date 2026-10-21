@@ -32,4 +32,4 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
-          python .github/scripts/triage.py
+          python scripts/triage.py

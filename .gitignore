@@ -36,6 +36,10 @@
 *.exe
 *.out
 *.app
+game
+
+# IDE settings
+.vscode/
 
 # debug information files
 *.dwo

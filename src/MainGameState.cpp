@@ -3,6 +3,7 @@
 #include <StateMachine.hpp>
 #include <iostream>
 #include <cmath>
+#include <raylib.h>
 
 #include "debug/DebugDraw.hpp"
 #include "physics/PhysicsGeometry.hpp"
@@ -104,6 +105,17 @@ void MainGameState::init()
     this->goalBannerTimer = 0.0f;
     this->goalBannerText = "";
     this->goalBannerColor = BLACK;
+
+    // Jugador 1: mira hacia la derecha
+    this->player1.isFacingRight = true;
+    this->player1.kickTimer = 0.0f;
+    this->player1.kickCooldown = 0.0f;
+
+    // Jugador 2: mira hacia la izquierda
+    this->player2.isFacingRight = false;
+    this->player2.kickTimer = 0.0f;
+    this->player2.kickCooldown = 0.0f;
+
 }
 
 void MainGameState::handleInput()
@@ -154,9 +166,10 @@ void MainGameState::handleInput()
         player1.isGrounded = false; // Bloqueamos saltar en el aire
     }
 
-    if (IsKeyDown(KEY_SPACE))
+    if (IsKeyPressed(KEY_SPACE) && player1.kickCooldown <= 0.0f)
     {
-        // Chutar
+        player1.kickTimer = 0.18f;     // El pie saldrá durante 0.18 segundos
+        player1.kickCooldown = 0.35f;  // Hay que esperar 0.35s para volver a chutar
     }
 
     // Player 2
@@ -180,9 +193,10 @@ void MainGameState::handleInput()
         player2.isGrounded = false; // Bloqueamos saltar en el aire
     }
 
-    if (IsKeyDown(KEY_KP_ENTER))
+    if (IsKeyPressed(KEY_L) && player2.kickCooldown <= 0.0f)
     {
-        // Chutar
+        player2.kickTimer = 0.18f;
+        player2.kickCooldown = 0.35f;
     }
 }
 
@@ -252,6 +266,13 @@ void MainGameState::update(float deltaTime)
     this->physics.Gravity(this->player1.body.getVelocity().y, deltaTime);
     this->physics.Gravity(this->player2.body.getVelocity().y, deltaTime);
     this->physics.ApplyFriction(ballVel.x, BALL_FRICTION, deltaTime);
+
+    // Actualizamos temporizadores de la patada
+    if (player1.kickTimer > 0.0f) player1.kickTimer -= deltaTime;
+    if (player1.kickCooldown > 0.0f) player1.kickCooldown -= deltaTime;
+    if (player2.kickTimer > 0.0f) player2.kickTimer -= deltaTime;
+    if (player2.kickCooldown > 0.0f) player2.kickCooldown -= deltaTime;
+
 
     // 2. Integración de movimiento (la velocidad cambia la posición)
     this->physics.Integrate(this->player1.body, deltaTime);
@@ -369,6 +390,27 @@ void MainGameState::update(float deltaTime)
     // 8. Colisiones Pelota - Jugadores (pasos del png: normal, velocidad relativa, rebote con e)
     collideBallWith(this->ball, this->player1.body, E_PLAYER);
     collideBallWith(this->ball, this->player2.body, E_PLAYER);
+
+    // 9. Impacto de la Patada con la Pelota
+    // Patada Jugador 1 (chuta hacia adelante y arriba a la derecha)
+    if (player1.kickTimer > 0.0f) {
+        Rectangle foot1 = player1.getFootRect();
+        if (CheckCollisionCircleRec(ball.getPosition(), ball.getRadius(), foot1)) {
+            ball.setVelocity(550.0f, -380.0f); // Impulso parabólico fuerte
+            player1.kickTimer = 0.0f;          // Consumimos la patada al impactar
+        }
+    }
+
+    // Patada Jugador 2 (chuta hacia adelante y arriba a la izquierda)
+    if (player2.kickTimer > 0.0f) {
+        Rectangle foot2 = player2.getFootRect();
+        if (CheckCollisionCircleRec(ball.getPosition(), ball.getRadius(), foot2)) {
+            ball.setVelocity(-550.0f, -380.0f); // Impulso hacia la portería izquierda
+            player2.kickTimer = 0.0f;
+        }
+    }
+
+
 }
 
 void MainGameState::render()
@@ -390,6 +432,16 @@ void MainGameState::render()
     DrawRectangleRec(player1.body.getRect(), RED);
     DrawRectangleRec(player2.body.getRect(), BLUE);
     DrawCircleV(ball.getPosition(), ball.getRadius(), BLACK);
+
+    // Pie Jugador 1: Siempre visible, se ilumina un poco al chutar
+    Color footColor1 = (player1.kickTimer > 0.0f) ? ORANGE : DARKGRAY;
+    DrawRectangleRec(player1.getFootRect(), footColor1);
+
+    // Pie Jugador 2: Siempre visible
+    Color footColor2 = (player2.kickTimer > 0.0f) ? ORANGE : DARKGRAY;
+    DrawRectangleRec(player2.getFootRect(), footColor2);
+
+
 
     // Marcador (HUD)
     std::string scoreText = std::to_string(scoreP1) + "  -  " + std::to_string(scoreP2);

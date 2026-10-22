@@ -11,6 +11,31 @@ extern "C" {
 struct Player {
     Body body;       // Posicion (CENTRO), velocidad (px/s) y caja del jugador
     bool isGrounded; //comprobamos si el jugador está tocando el suelo
+    float kickTimer;     // Tiempo que dura el pie extendido (ej: 0.18s)
+    float kickCooldown;  // Tiempo antes de poder volver a chutar (ej: 0.35s)
+    bool isFacingRight;  // true para J1 (mira a dcha), false para J2 (mira a izq)
+
+        Rectangle getFootRect() const {
+        Rectangle bodyRect = body.getRect();
+        float footWidth = 24.0f;
+        float footHeight = 14.0f;
+        
+        // El pie siempre está a ras del suelo (en la base del cuerpo)
+        float footY = bodyRect.y + bodyRect.height - footHeight;
+
+        // Si estamos chutando, el pie se estira 22 píxeles hacia adelante
+        float extension = (kickTimer > 0.0f) ? 22.0f : 0.0f;
+
+        // Posición base del pie: en la esquina delantera del jugador
+        // J1 (isFacingRight): esquina delantera derecha + extensión
+        // J2 (!isFacingRight): esquina delantera izquierda - extensión
+        float footX = isFacingRight
+            ? (bodyRect.x + bodyRect.width - 12.0f + extension)
+            : (bodyRect.x - footWidth + 12.0f - extension);
+
+        return { footX, footY, footWidth, footHeight };
+    }
+
 };
 
 struct Goal {

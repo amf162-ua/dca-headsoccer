@@ -41,8 +41,13 @@ void MenuState::render()
     DrawText(startPrompt, 540 - (promptWidth / 2), 380, promptFontSize, DARKGRAY);
 
     // Controles Básicos
-    DrawText("Jugador 1: Teclas A, D para mover | W para saltar", 540 - MeasureText("Jugador 1: Teclas A, D para mover | W para saltar", 20) / 2, 500, 20, GRAY);
-    DrawText("Jugador 2: Flechas Izq, Der para mover | Arriba para saltar", 540 - MeasureText("Jugador 2: Flechas Izq, Der para mover | Arriba para saltar", 20) / 2, 535, 20, GRAY);
+    const char* controlsP1 = "Jugador 1 (Rojo): A, D mover | W saltar | ESPACIO chutar";
+    int p1Width = MeasureText(controlsP1, 20);
+    DrawText(controlsP1, 540 - (p1Width / 2), 490, 20, MAROON);
+
+    const char* controlsP2 = "Jugador 2 (Azul): Flechas mover | Arriba saltar | L chutar";
+    int p2Width = MeasureText(controlsP2, 20);
+    DrawText(controlsP2, 540 - (p2Width / 2), 530, 20, DARKBLUE);
 
     EndDrawing();
 }

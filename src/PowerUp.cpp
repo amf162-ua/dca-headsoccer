@@ -4,8 +4,9 @@
 namespace
 {
     const float POWER_UP_RADIUS = 18.0f;
+    const float POWER_UP_HEIGHT = 150.0f;
     const float RESPAWN_TIME = 12.0f;
-    const float EFFECT_DURATION = 6.0f;
+    const float EFFECT_DURATION = 12.0f;
     const float BALL_SPEED_FACTOR = 0.7f;
 }
 
@@ -17,7 +18,7 @@ PowerUp::PowerUp()
 void PowerUp::reset()
 {
     radius = POWER_UP_RADIUS;
-    position = {PhysicsGeometry::fieldWidth / 2.0f, PhysicsGeometry::groundY - radius};
+    position = {PhysicsGeometry::fieldWidth / 2.0f, PhysicsGeometry::groundY - POWER_UP_HEIGHT};
     available = true;
     respawnTimer = 0.0f;
     effectTimer = 0.0f;

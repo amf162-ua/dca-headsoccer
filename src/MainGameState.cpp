@@ -460,7 +460,7 @@ void MainGameState::renderPowerUp()
         DrawRectangle((int)position.x - 7, (int)position.y - 8, 5, 16, WHITE);
         DrawRectangle((int)position.x + 2, (int)position.y - 8, 5, 16, WHITE);
 
-        const char* message = "Recoge el objeto violeta: pelota mas lenta";
+        const char* message = "Salta para recoger el objeto violeta";
         DrawText(message, 540 - MeasureText(message, 18) / 2, 105, 18, DARKPURPLE);
     }
 

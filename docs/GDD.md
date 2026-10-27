@@ -64,9 +64,9 @@ El proyecto se estructurará modularmente en C++ bajo los siguientes componentes
 
 ## 6. Power-up de ralentización
 
-Al comenzar cada saque aparece un círculo violeta con dos barras blancas en el centro del campo, sobre el suelo. Cualquiera de los dos jugadores puede recogerlo al tocarlo. La pelota no puede recogerlo ni chocar con él.
+Al comenzar cada saque aparece un círculo violeta con dos barras blancas en el centro del campo, a 150 píxeles sobre el suelo. Cualquiera de los dos jugadores puede recogerlo al saltar y tocarlo. La altura permite alcanzarlo con un salto normal, pero no recogerlo desde el suelo. La pelota no puede recogerlo ni chocar con él.
 
-El objeto desaparece al recogerlo y la pelota se mueve al **70 % de su velocidad normal durante 6 segundos**. La pelota se vuelve violeta y un mensaje muestra el tiempo restante. Los jugadores y el reloj del partido mantienen su ritmo normal. El objeto reaparece **12 segundos después de recogerlo**; permanecer encima permite recogerlo de nuevo cuando reaparezca.
+El objeto desaparece al recogerlo y la pelota se mueve al **70 % de su velocidad normal durante 12 segundos**. La pelota se vuelve violeta y un mensaje muestra el tiempo restante. Los jugadores y el reloj del partido mantienen su ritmo normal. El objeto reaparece **12 segundos después de recogerlo** y puede recogerse de nuevo con otro salto.
 
 La clase `PowerUp` gestiona la recogida, los temporizadores y el tiempo de simulación de la pelota. `MainGameState` usa ese tiempo para aplicar gravedad, fricción y movimiento. La velocidad almacenada no se multiplica en cada fotograma: así se evita frenar la pelota repetidamente y se recupera el ritmo normal al terminar el efecto. Si el efecto termina dentro de un fotograma, se combinan la parte ralentizada y la parte normal.
 
@@ -83,11 +83,11 @@ g++ -std=c++17 -Isrc -Ivendor/include src/*.cpp src/physics/*.cpp src/debug/*.cp
 /tmp/headsoccer-power-up
 ```
 
-Las pruebas comprueban la recogida por ambos jugadores, el contacto con el borde, la duración, la reaparición, el reinicio y el movimiento ralentizado:
+Las pruebas comprueban la recogida por ambos jugadores, que el objeto se alcanza saltando, el contacto con el borde, la duración, la reaparición, el reinicio y el movimiento ralentizado:
 
 ```bash
 g++ -std=c++17 -Isrc -Ivendor/include tests/PowerUpTest.cpp src/PowerUp.cpp src/physics/body.cpp src/physics/physics.cpp -L/usr/local/lib -lraylib -lX11 -lm -lpthread -ldl -lrt -o /tmp/headsoccer-power-up-test
 /tmp/headsoccer-power-up-test
 ```
 
-Para comprobarlo jugando, inicia el partido con Enter, mueve un jugador hasta el objeto violeta y comprueba el aviso de 6 segundos. Activa F1 y F2 durante el efecto, espera a que termine y recoge el objeto cuando reaparezca. Tras un gol, comprueba que el objeto vuelve a estar disponible y la pelota recupera su velocidad normal.
+Para comprobarlo jugando, inicia el partido con Enter, mueve un jugador debajo del objeto violeta y salta (W para el jugador rojo o flecha arriba para el azul). Comprueba el aviso de 12 segundos. Activa F1 y F2 durante el efecto, espera a que termine y salta de nuevo para recoger el objeto cuando reaparezca. Tras un gol, comprueba que el objeto vuelve a estar disponible y la pelota recupera su velocidad normal.

@@ -28,7 +28,7 @@ void testCollection()
 
     assert(powerUp.isAvailable());
     assert(approximatelyEqual(position.x, PhysicsGeometry::fieldWidth / 2.0f));
-    assert(approximatelyEqual(position.y + powerUp.getRadius(), PhysicsGeometry::groundY));
+    assert(position.y + powerUp.getRadius() < PhysicsGeometry::groundY - PhysicsGeometry::playerHeight);
     assert(approximatelyEqual(powerUp.getBallDeltaTime(1.0f), 1.0f));
 
     Body player1 = createPlayer(125.0f, 560.0f);
@@ -39,45 +39,61 @@ void testCollection()
     assert(!powerUp.tryCollect(player1));
 
     // El contacto con el borde del circulo tambien debe recoger el objeto.
-    player1.setPosition(position.x - powerUp.getRadius() - halfWidth, 560.0f);
+    player1.setPosition(position.x - powerUp.getRadius() - halfWidth, position.y);
     assert(powerUp.tryCollect(player1));
     assert(!powerUp.isAvailable());
-    assert(approximatelyEqual(powerUp.getRemainingTime(), 6.0f));
+    assert(approximatelyEqual(powerUp.getRemainingTime(), 12.0f));
     assert(approximatelyEqual(powerUp.getBallSpeedFactor(), 0.7f));
 
     // El segundo jugador no puede recoger de nuevo un objeto que ya desaparecio.
-    Body player2 = createPlayer(position.x, 560.0f);
+    Body player2 = createPlayer(position.x, position.y);
     powerUp.update(1.0f);
     assert(!powerUp.tryCollect(player2));
-    assert(approximatelyEqual(powerUp.getRemainingTime(), 5.0f));
+    assert(approximatelyEqual(powerUp.getRemainingTime(), 11.0f));
 
     powerUp.reset();
     assert(powerUp.tryCollect(player2));
 }
 
+void testJumpCollection()
+{
+    PowerUp powerUp;
+    float standingY = PhysicsGeometry::groundY - PhysicsGeometry::playerHeight / 2.0f;
+    Body player = createPlayer(powerUp.getPosition().x, standingY);
+    assert(!powerUp.tryCollect(player));
+
+    player.setVelocity(0.0f, -420.0f);
+    Physics physics;
+    bool collected = false;
+    for (int frame = 0; frame < 60 && !collected; frame++)
+    {
+        float deltaTime = 1.0f / 60.0f;
+        physics.Gravity(player.getVelocity().y, deltaTime);
+        physics.Integrate(player, deltaTime);
+        collected = powerUp.tryCollect(player);
+    }
+    assert(collected);
+}
+
 void testDurationAndRespawn()
 {
     PowerUp powerUp;
-    Body player = createPlayer(powerUp.getPosition().x, 560.0f);
+    Body player = createPlayer(powerUp.getPosition().x, powerUp.getPosition().y);
     assert(powerUp.tryCollect(player));
 
-    powerUp.update(5.75f);
+    powerUp.update(11.75f);
     assert(approximatelyEqual(powerUp.getRemainingTime(), 0.25f));
+    assert(!powerUp.isAvailable());
 
     // Un fotograma que cruza el final del efecto combina tiempo lento y normal.
     assert(approximatelyEqual(powerUp.getBallDeltaTime(0.5f), 0.425f));
-    powerUp.update(0.5f);
+    powerUp.update(0.25f);
     assert(approximatelyEqual(powerUp.getRemainingTime(), 0.0f));
     assert(approximatelyEqual(powerUp.getBallSpeedFactor(), 1.0f));
     assert(approximatelyEqual(powerUp.getBallDeltaTime(0.5f), 0.5f));
-    assert(!powerUp.isAvailable());
-
-    powerUp.update(5.5f);
-    assert(!powerUp.isAvailable());
-    powerUp.update(0.25f);
     assert(powerUp.isAvailable());
     assert(powerUp.tryCollect(player));
-    assert(approximatelyEqual(powerUp.getRemainingTime(), 6.0f));
+    assert(approximatelyEqual(powerUp.getRemainingTime(), 12.0f));
 
     // Un saque o una partida nueva cancela el efecto y recupera el objeto.
     powerUp.reset();
@@ -89,7 +105,7 @@ void testDurationAndRespawn()
 void testBallMovement()
 {
     PowerUp powerUp;
-    Body player = createPlayer(powerUp.getPosition().x, 560.0f);
+    Body player = createPlayer(powerUp.getPosition().x, powerUp.getPosition().y);
     assert(powerUp.tryCollect(player));
 
     Body ball;
@@ -114,6 +130,7 @@ void testBallMovement()
 int main()
 {
     testCollection();
+    testJumpCollection();
     testDurationAndRespawn();
     testBallMovement();
     std::cout << "Pruebas del power-up superadas." << std::endl;

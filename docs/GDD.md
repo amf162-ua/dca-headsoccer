@@ -72,7 +72,13 @@ La clase `PowerUp` gestiona la recogida, los temporizadores y el tiempo de simul
 
 Los temporizadores se detienen durante la celebración de un gol. El siguiente saque reinicia el objeto y cancela cualquier efecto anterior. Una partida nueva también empieza con el objeto disponible.
 
-El modo debug sigue activándose con **F1**. Muestra el área de recogida y el porcentaje de velocidad de la pelota. La predicción de **F2** utiliza una copia del power-up para tener en cuenta la ralentización y su final sin modificar el partido.
+El modo debug sigue activándose con **F1**. Muestra el área de recogida, las cajas de los pies y el porcentaje de velocidad de la pelota. La predicción de **F2** utiliza copias del power-up y de los jugadores para tener en cuenta la ralentización, su final y las patadas activas sin modificar el partido.
+
+### Compatibilidad con los chutes
+
+El jugador rojo chuta con **Espacio** y el azul con **L**. Cada patada dura 0,18 segundos y tiene un tiempo de espera de 0,35 segundos. Ambos temporizadores utilizan el tiempo normal, también durante el power-up.
+
+El chute mantiene el impulso de `main`: 550 píxeles por segundo hacia la portería rival y 380 hacia arriba. El power-up reduce el tiempo de simulación de la pelota, por lo que también ralentiza los disparos sin reducir dos veces su velocidad. Cada saque reinicia las patadas y el efecto del power-up.
 
 ### Compilación y pruebas en Linux
 
@@ -91,3 +97,5 @@ g++ -std=c++17 -Isrc -Ivendor/include tests/PowerUpTest.cpp src/PowerUp.cpp src/
 ```
 
 Para comprobarlo jugando, inicia el partido con Enter, mueve un jugador debajo del objeto violeta y salta (W para el jugador rojo o flecha arriba para el azul). Comprueba el aviso de 12 segundos. Activa F1 y F2 durante el efecto, espera a que termine y salta de nuevo para recoger el objeto cuando reaparezca. Tras un gol, comprueba que el objeto vuelve a estar disponible y la pelota recupera su velocidad normal.
+
+Comprueba también que ambos jugadores pueden chutar una pelota cercana, primero sin el efecto y después de recoger el objeto. Los disparos deben salir hacia la portería rival y moverse más despacio mientras el efecto está activo. Activa F1 y F2 durante los chutes para revisar los pies y la trayectoria.

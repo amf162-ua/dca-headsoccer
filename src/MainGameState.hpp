@@ -6,6 +6,7 @@ extern "C" {
 #include "physics/physics.hpp"
 #include "physics/body.hpp"
 #include "physics/collision.hpp"
+#include "PowerUp.hpp"
 #include <string>
 
 struct Player {
@@ -26,6 +27,7 @@ class MainGameState : public GameState
         Player npc;
         Body ball;           // Pelota: cuerpo circular DYNAMIC
         Physics physics;
+        PowerUp powerUp;
 
         Goal goalP1;
         Goal goalP2;
@@ -47,6 +49,7 @@ class MainGameState : public GameState
         Collision::Contact collideBallWith(Body& circle, Body& other, float restitution);
         void renderDebug();
         void renderBallTrajectory();
+        void renderPowerUp();
 
     public:
         MainGameState();

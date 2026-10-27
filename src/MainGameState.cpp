@@ -58,6 +58,9 @@ void MainGameState::resetPositions()
     // Pelota en el centro de la pantalla (1080 / 2 = 540)
     this->ball.setPosition(540.f, 400.f);
     this->ball.setVelocity(0.f, 0.f);
+
+    // Cada saque empieza con el objeto disponible y sin ralentizacion.
+    this->powerUp.reset();
 }
 
 void MainGameState::init()
@@ -247,16 +250,13 @@ void MainGameState::update(float deltaTime)
     Vector2& ballVel = this->ball.getVelocity();
     float ballRadius = this->ball.getRadius();
 
-    // 1. Fuerzas: gravedad y fricción (cambian la velocidad)
-    this->physics.Gravity(ballVel.y, deltaTime);
+    // 1. Gravedad y movimiento de los jugadores con el tiempo normal.
     this->physics.Gravity(this->player1.body.getVelocity().y, deltaTime);
     this->physics.Gravity(this->player2.body.getVelocity().y, deltaTime);
-    this->physics.ApplyFriction(ballVel.x, BALL_FRICTION, deltaTime);
 
-    // 2. Integración de movimiento (la velocidad cambia la posición)
+    // 2. Integración del movimiento de los jugadores.
     this->physics.Integrate(this->player1.body, deltaTime);
     this->physics.Integrate(this->player2.body, deltaTime);
-    this->physics.Integrate(this->ball, deltaTime);
 
     // 3. Colisión de Jugadores con el Suelo
     keepPlayerInField(this->player1);
@@ -310,6 +310,18 @@ void MainGameState::update(float deltaTime)
         keepPlayerInField(this->player1);
         keepPlayerInField(this->player2);
     }
+
+    // Solo los jugadores pueden recoger el objeto; la pelota lo atraviesa.
+    powerUp.tryCollect(player1.body);
+    powerUp.tryCollect(player2.body);
+
+    // El efecto ralentiza toda la simulacion de la pelota, incluidos sus rebotes.
+    // No multiplicamos su velocidad cada fotograma para evitar que se detenga.
+    float ballDeltaTime = powerUp.getBallDeltaTime(deltaTime);
+    this->physics.Gravity(ballVel.y, ballDeltaTime);
+    this->physics.ApplyFriction(ballVel.x, BALL_FRICTION, ballDeltaTime);
+    this->physics.Integrate(this->ball, ballDeltaTime);
+    powerUp.update(deltaTime);
 
     // 4. Colisión de Pelota con el Suelo
     if (ballPos.y + ballRadius >= GROUND_Y) {
@@ -386,10 +398,17 @@ void MainGameState::render()
     DrawRectangleRec(goalP1.crossbar.getRect(), DARKGRAY);
     DrawRectangleRec(goalP2.crossbar.getRect(), DARKGRAY);
 
+    renderPowerUp();
+
     // Jugadores y Pelota
     DrawRectangleRec(player1.body.getRect(), RED);
     DrawRectangleRec(player2.body.getRect(), BLUE);
-    DrawCircleV(ball.getPosition(), ball.getRadius(), BLACK);
+    Color ballColor = BLACK;
+    if (powerUp.getRemainingTime() > 0.0f)
+    {
+        ballColor = DARKPURPLE;
+    }
+    DrawCircleV(ball.getPosition(), ball.getRadius(), ballColor);
 
     // Marcador (HUD)
     std::string scoreText = std::to_string(scoreP1) + "  -  " + std::to_string(scoreP2);
@@ -427,6 +446,29 @@ void MainGameState::render()
     }
 
     EndDrawing();
+}
+
+void MainGameState::renderPowerUp()
+{
+    if (powerUp.isAvailable())
+    {
+        Vector2 position = powerUp.getPosition();
+        DrawCircleV(position, powerUp.getRadius(), VIOLET);
+        DrawCircleLinesV(position, powerUp.getRadius(), DARKPURPLE);
+
+        // Dos barras identifican el objeto que frena la pelota.
+        DrawRectangle((int)position.x - 7, (int)position.y - 8, 5, 16, WHITE);
+        DrawRectangle((int)position.x + 2, (int)position.y - 8, 5, 16, WHITE);
+
+        const char* message = "Recoge el objeto violeta: pelota mas lenta";
+        DrawText(message, 540 - MeasureText(message, 18) / 2, 105, 18, DARKPURPLE);
+    }
+
+    if (powerUp.getRemainingTime() > 0.0f)
+    {
+        const char* message = TextFormat("Pelota al 70%%: %.1f s", powerUp.getRemainingTime());
+        DrawText(message, 540 - MeasureText(message, 20) / 2, 105, 20, DARKPURPLE);
+    }
 }
 
 void MainGameState::renderDebug()

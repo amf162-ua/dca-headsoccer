@@ -59,3 +59,43 @@ El proyecto se estructurará modularmente en C++ bajo los siguientes componentes
 2. **`Player` (Entidad Jugador):** Encapsula la posición, dimensiones, velocidad, teclas de control asociadas y el método de renderizado geométrico.
 3. **`Ball` (Entidad Pelota):** Almacena las propiedades físicas de la pelota, aplicando la integración del movimiento por *Delta Time* (`GetFrameTime()`) y los métodos de detección y respuesta ante colisiones.
 4. **`ScoreManager` / `MatchRules`:** Módulo encargado de verificar si la posición de la pelota ha rebasado la línea de gol, incrementar los marcadores correspondientes, reiniciar la posición de las entidades al centro del campo tras un gol y evaluar el final del tiempo reglamentario.
+
+---
+
+## 6. Power-up de ralentización
+
+Al comenzar cada saque aparece un círculo violeta con dos barras blancas en el centro del campo, a 150 píxeles sobre el suelo. Cualquiera de los dos jugadores puede recogerlo al saltar y tocarlo. La altura permite alcanzarlo con un salto normal, pero no recogerlo desde el suelo. La pelota no puede recogerlo ni chocar con él.
+
+El objeto desaparece al recogerlo y la pelota se mueve al **70 % de su velocidad normal durante 12 segundos**. La pelota se vuelve violeta y un mensaje muestra el tiempo restante. Los jugadores y el reloj del partido mantienen su ritmo normal. El objeto reaparece **12 segundos después de recogerlo** y puede recogerse de nuevo con otro salto.
+
+La clase `PowerUp` gestiona la recogida, los temporizadores y el tiempo de simulación de la pelota. `MainGameState` usa ese tiempo para aplicar gravedad, fricción y movimiento. La velocidad almacenada no se multiplica en cada fotograma: así se evita frenar la pelota repetidamente y se recupera el ritmo normal al terminar el efecto. Si el efecto termina dentro de un fotograma, se combinan la parte ralentizada y la parte normal.
+
+Los temporizadores se detienen durante la celebración de un gol. El siguiente saque reinicia el objeto y cancela cualquier efecto anterior. Una partida nueva también empieza con el objeto disponible.
+
+El modo debug sigue activándose con **F1**. Muestra el área de recogida, las cajas de los pies y el porcentaje de velocidad de la pelota. La predicción de **F2** utiliza copias del power-up y de los jugadores para tener en cuenta la ralentización, su final y las patadas activas sin modificar el partido.
+
+### Compatibilidad con los chutes
+
+El jugador rojo chuta con **Espacio** y el azul con **L**. Cada patada dura 0,18 segundos y tiene un tiempo de espera de 0,35 segundos. Ambos temporizadores utilizan el tiempo normal, también durante el power-up.
+
+El chute mantiene el impulso de `main`: 550 píxeles por segundo hacia la portería rival y 380 hacia arriba. El power-up reduce el tiempo de simulación de la pelota, por lo que también ralentiza los disparos sin reducir dos veces su velocidad. Cada saque reinicia las patadas y el efecto del power-up.
+
+### Compilación y pruebas en Linux
+
+Se necesita G++ con C++17 y Raylib instalada. Desde la raíz del repositorio:
+
+```bash
+g++ -std=c++17 -Isrc -Ivendor/include src/*.cpp src/physics/*.cpp src/debug/*.cpp -L/usr/local/lib -lraylib -lX11 -lm -lpthread -ldl -lrt -o /tmp/headsoccer-power-up
+/tmp/headsoccer-power-up
+```
+
+Las pruebas comprueban la recogida por ambos jugadores, que el objeto se alcanza saltando, el contacto con el borde, la duración, la reaparición, el reinicio y el movimiento ralentizado:
+
+```bash
+g++ -std=c++17 -Isrc -Ivendor/include tests/PowerUpTest.cpp src/PowerUp.cpp src/physics/body.cpp src/physics/physics.cpp -L/usr/local/lib -lraylib -lX11 -lm -lpthread -ldl -lrt -o /tmp/headsoccer-power-up-test
+/tmp/headsoccer-power-up-test
+```
+
+Para comprobarlo jugando, inicia el partido con Enter, mueve un jugador debajo del objeto violeta y salta (W para el jugador rojo o flecha arriba para el azul). Comprueba el aviso de 12 segundos. Activa F1 y F2 durante el efecto, espera a que termine y salta de nuevo para recoger el objeto cuando reaparezca. Tras un gol, comprueba que el objeto vuelve a estar disponible y la pelota recupera su velocidad normal.
+
+Comprueba también que ambos jugadores pueden chutar una pelota cercana, primero sin el efecto y después de recoger el objeto. Los disparos deben salir hacia la portería rival y moverse más despacio mientras el efecto está activo. Activa F1 y F2 durante los chutes para revisar los pies y la trayectoria.

@@ -6,6 +6,7 @@ extern "C" {
 #include "physics/physics.hpp"
 #include "physics/body.hpp"
 #include "physics/collision.hpp"
+#include "PowerUp.hpp"
 #include <string>
 
 struct Player {
@@ -15,11 +16,11 @@ struct Player {
     float kickCooldown;  // Tiempo antes de poder volver a chutar (ej: 0.35s)
     bool isFacingRight;  // true para J1 (mira a dcha), false para J2 (mira a izq)
 
-        Rectangle getFootRect() const {
+    Rectangle getFootRect() const {
         Rectangle bodyRect = body.getRect();
         float footWidth = 24.0f;
         float footHeight = 14.0f;
-        
+
         // El pie siempre está a ras del suelo (en la base del cuerpo)
         float footY = bodyRect.y + bodyRect.height - footHeight;
 
@@ -51,6 +52,7 @@ class MainGameState : public GameState
         Player npc;
         Body ball;           // Pelota: cuerpo circular DYNAMIC
         Physics physics;
+        PowerUp powerUp;
 
         Goal goalP1;
         Goal goalP2;
@@ -70,8 +72,11 @@ class MainGameState : public GameState
         void resetPositions();
         void keepPlayerInField(Player& player);                                // Suelo y limites de pantalla
         Collision::Contact collideBallWith(Body& circle, Body& other, float restitution);
+        void updateKickTimers(Player& player, float deltaTime);
+        bool kickBall(Player& player, Body& targetBall);
         void renderDebug();
         void renderBallTrajectory();
+        void renderPowerUp();
 
     public:
         MainGameState();

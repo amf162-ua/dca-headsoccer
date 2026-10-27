@@ -50,15 +50,24 @@ void MainGameState::resetPositions()
     this->player1.body.setPosition(100.f + PLAYER_WIDTH / 2, 520.f + PLAYER_HEIGHT / 2);
     this->player1.body.setVelocity(0.f, 0.f);
     this->player1.isGrounded = true;
+    this->player1.isFacingRight = true;
+    this->player1.kickTimer = 0.0f;
+    this->player1.kickCooldown = 0.0f;
 
     // Jugador 2 (Derecha): esquina en (830, 520)
     this->player2.body.setPosition(830.f + PLAYER_WIDTH / 2, 520.f + PLAYER_HEIGHT / 2);
     this->player2.body.setVelocity(0.f, 0.f);
     this->player2.isGrounded = true;
+    this->player2.isFacingRight = false;
+    this->player2.kickTimer = 0.0f;
+    this->player2.kickCooldown = 0.0f;
 
     // Pelota en el centro de la pantalla (1080 / 2 = 540)
     this->ball.setPosition(540.f, 400.f);
     this->ball.setVelocity(0.f, 0.f);
+
+    // Cada saque empieza con el objeto disponible y sin ralentizacion.
+    this->powerUp.reset();
 }
 
 void MainGameState::init()
@@ -105,17 +114,6 @@ void MainGameState::init()
     this->goalBannerTimer = 0.0f;
     this->goalBannerText = "";
     this->goalBannerColor = BLACK;
-
-    // Jugador 1: mira hacia la derecha
-    this->player1.isFacingRight = true;
-    this->player1.kickTimer = 0.0f;
-    this->player1.kickCooldown = 0.0f;
-
-    // Jugador 2: mira hacia la izquierda
-    this->player2.isFacingRight = false;
-    this->player2.kickTimer = 0.0f;
-    this->player2.kickCooldown = 0.0f;
-
 }
 
 void MainGameState::handleInput()
@@ -232,6 +230,46 @@ Collision::Contact MainGameState::collideBallWith(
     return contact;
 }
 
+void MainGameState::updateKickTimers(Player& player, float deltaTime)
+{
+    player.kickTimer -= deltaTime;
+    if (player.kickTimer < 0.0f)
+    {
+        player.kickTimer = 0.0f;
+    }
+
+    player.kickCooldown -= deltaTime;
+    if (player.kickCooldown < 0.0f)
+    {
+        player.kickCooldown = 0.0f;
+    }
+}
+
+bool MainGameState::kickBall(Player& player, Body& targetBall)
+{
+    if (player.kickTimer <= 0.0f)
+    {
+        return false;
+    }
+
+    Rectangle foot = player.getFootRect();
+    if (!CheckCollisionCircleRec(targetBall.getPosition(), targetBall.getRadius(), foot))
+    {
+        return false;
+    }
+
+    float horizontalSpeed = 550.0f;
+    if (!player.isFacingRight)
+    {
+        horizontalSpeed = -horizontalSpeed;
+    }
+
+    // El power-up ya ralentiza el movimiento mediante ballDeltaTime.
+    targetBall.setVelocity(horizontalSpeed, -380.0f);
+    player.kickTimer = 0.0f;
+    return true;
+}
+
 void MainGameState::update(float deltaTime)
 {
     lastDeltaTime = deltaTime;
@@ -261,23 +299,17 @@ void MainGameState::update(float deltaTime)
     Vector2& ballVel = this->ball.getVelocity();
     float ballRadius = this->ball.getRadius();
 
-    // 1. Fuerzas: gravedad y fricción (cambian la velocidad)
-    this->physics.Gravity(ballVel.y, deltaTime);
+    // 1. Gravedad y movimiento de los jugadores con el tiempo normal.
     this->physics.Gravity(this->player1.body.getVelocity().y, deltaTime);
     this->physics.Gravity(this->player2.body.getVelocity().y, deltaTime);
-    this->physics.ApplyFriction(ballVel.x, BALL_FRICTION, deltaTime);
 
-    // Actualizamos temporizadores de la patada
-    if (player1.kickTimer > 0.0f) player1.kickTimer -= deltaTime;
-    if (player1.kickCooldown > 0.0f) player1.kickCooldown -= deltaTime;
-    if (player2.kickTimer > 0.0f) player2.kickTimer -= deltaTime;
-    if (player2.kickCooldown > 0.0f) player2.kickCooldown -= deltaTime;
+    // Las patadas conservan sus tiempos normales aunque la pelota vaya lenta.
+    updateKickTimers(player1, deltaTime);
+    updateKickTimers(player2, deltaTime);
 
-
-    // 2. Integración de movimiento (la velocidad cambia la posición)
+    // 2. Integración del movimiento de los jugadores.
     this->physics.Integrate(this->player1.body, deltaTime);
     this->physics.Integrate(this->player2.body, deltaTime);
-    this->physics.Integrate(this->ball, deltaTime);
 
     // 3. Colisión de Jugadores con el Suelo
     keepPlayerInField(this->player1);
@@ -331,6 +363,18 @@ void MainGameState::update(float deltaTime)
         keepPlayerInField(this->player1);
         keepPlayerInField(this->player2);
     }
+
+    // Solo los jugadores pueden recoger el objeto; la pelota lo atraviesa.
+    powerUp.tryCollect(player1.body);
+    powerUp.tryCollect(player2.body);
+
+    // El efecto ralentiza toda la simulacion de la pelota, incluidos sus rebotes.
+    // No multiplicamos su velocidad cada fotograma para evitar que se detenga.
+    float ballDeltaTime = powerUp.getBallDeltaTime(deltaTime);
+    this->physics.Gravity(ballVel.y, ballDeltaTime);
+    this->physics.ApplyFriction(ballVel.x, BALL_FRICTION, ballDeltaTime);
+    this->physics.Integrate(this->ball, ballDeltaTime);
+    powerUp.update(deltaTime);
 
     // 4. Colisión de Pelota con el Suelo
     if (ballPos.y + ballRadius >= GROUND_Y) {
@@ -391,26 +435,9 @@ void MainGameState::update(float deltaTime)
     collideBallWith(this->ball, this->player1.body, E_PLAYER);
     collideBallWith(this->ball, this->player2.body, E_PLAYER);
 
-    // 9. Impacto de la Patada con la Pelota
-    // Patada Jugador 1 (chuta hacia adelante y arriba a la derecha)
-    if (player1.kickTimer > 0.0f) {
-        Rectangle foot1 = player1.getFootRect();
-        if (CheckCollisionCircleRec(ball.getPosition(), ball.getRadius(), foot1)) {
-            ball.setVelocity(550.0f, -380.0f); // Impulso parabólico fuerte
-            player1.kickTimer = 0.0f;          // Consumimos la patada al impactar
-        }
-    }
-
-    // Patada Jugador 2 (chuta hacia adelante y arriba a la izquierda)
-    if (player2.kickTimer > 0.0f) {
-        Rectangle foot2 = player2.getFootRect();
-        if (CheckCollisionCircleRec(ball.getPosition(), ball.getRadius(), foot2)) {
-            ball.setVelocity(-550.0f, -380.0f); // Impulso hacia la portería izquierda
-            player2.kickTimer = 0.0f;
-        }
-    }
-
-
+    // 9. Impacto de las patadas con la pelota.
+    kickBall(player1, ball);
+    kickBall(player2, ball);
 }
 
 void MainGameState::render()
@@ -428,10 +455,17 @@ void MainGameState::render()
     DrawRectangleRec(goalP1.crossbar.getRect(), DARKGRAY);
     DrawRectangleRec(goalP2.crossbar.getRect(), DARKGRAY);
 
+    renderPowerUp();
+
     // Jugadores y Pelota
     DrawRectangleRec(player1.body.getRect(), RED);
     DrawRectangleRec(player2.body.getRect(), BLUE);
-    DrawCircleV(ball.getPosition(), ball.getRadius(), BLACK);
+    Color ballColor = BLACK;
+    if (powerUp.getRemainingTime() > 0.0f)
+    {
+        ballColor = DARKPURPLE;
+    }
+    DrawCircleV(ball.getPosition(), ball.getRadius(), ballColor);
 
     // Pie Jugador 1: Siempre visible, se ilumina un poco al chutar
     Color footColor1 = (player1.kickTimer > 0.0f) ? ORANGE : DARKGRAY;
@@ -440,8 +474,6 @@ void MainGameState::render()
     // Pie Jugador 2: Siempre visible
     Color footColor2 = (player2.kickTimer > 0.0f) ? ORANGE : DARKGRAY;
     DrawRectangleRec(player2.getFootRect(), footColor2);
-
-
 
     // Marcador (HUD)
     std::string scoreText = std::to_string(scoreP1) + "  -  " + std::to_string(scoreP2);
@@ -481,6 +513,29 @@ void MainGameState::render()
     EndDrawing();
 }
 
+void MainGameState::renderPowerUp()
+{
+    if (powerUp.isAvailable())
+    {
+        Vector2 position = powerUp.getPosition();
+        DrawCircleV(position, powerUp.getRadius(), VIOLET);
+        DrawCircleLinesV(position, powerUp.getRadius(), DARKPURPLE);
+
+        // Dos barras identifican el objeto que frena la pelota.
+        DrawRectangle((int)position.x - 7, (int)position.y - 8, 5, 16, WHITE);
+        DrawRectangle((int)position.x + 2, (int)position.y - 8, 5, 16, WHITE);
+
+        const char* message = "Salta para recoger el objeto violeta";
+        DrawText(message, 540 - MeasureText(message, 18) / 2, 105, 18, DARKPURPLE);
+    }
+
+    if (powerUp.getRemainingTime() > 0.0f)
+    {
+        const char* message = TextFormat("Pelota al 70%%: %.1f s", powerUp.getRemainingTime());
+        DrawText(message, 540 - MeasureText(message, 20) / 2, 105, 20, DARKPURPLE);
+    }
+}
+
 void MainGameState::renderDebug()
 {
     if (trajectoryEnabled)
@@ -495,8 +550,19 @@ void MainGameState::renderDebug()
 
     DebugDraw::box(player1Bounds, LIME);
     DebugDraw::box(player2Bounds, LIME);
+    DebugDraw::box(player1.getFootRect(), ORANGE);
+    DebugDraw::box(player2.getFootRect(), ORANGE);
     DebugDraw::box(ballBounds, GOLD);
     DrawCircleLinesV(ballPosition, ball.getRadius(), GRAY);
+
+    if (powerUp.isAvailable())
+    {
+        Vector2 position = powerUp.getPosition();
+        float radius = powerUp.getRadius();
+        Rectangle bounds = {position.x - radius, position.y - radius, radius * 2.0f, radius * 2.0f};
+        DebugDraw::box(bounds, VIOLET);
+        DrawCircleLinesV(position, radius, DARKPURPLE);
+    }
 
     DebugDraw::box(goalP1.netArea, PURPLE);
     DebugDraw::box(goalP2.netArea, PURPLE);
@@ -538,7 +604,7 @@ void MainGameState::renderDebug()
     DebugDraw::arrow(
         ballPosition,
         ball.getVelocity(),
-        velocityScale,
+        velocityScale * powerUp.getBallSpeedFactor(),
         SKYBLUE
     );
 
@@ -552,15 +618,18 @@ void MainGameState::renderDebug()
     {
         DrawText("Prediccion aproximada; jugadores inmoviles", 20, 144, 14, GRAY);
     }
+    DrawText(TextFormat("Velocidad pelota: %.0f%%", powerUp.getBallSpeedFactor() * 100.0f),
+             20, 166, 16, DARKPURPLE);
 }
 
 void MainGameState::renderBallTrajectory()
 {
     Body predictedBall = ball;
-    Body stationaryPlayer1 = player1.body;
-    Body stationaryPlayer2 = player2.body;
-    stationaryPlayer1.setVelocity(0.0f, 0.0f);
-    stationaryPlayer2.setVelocity(0.0f, 0.0f);
+    PowerUp predictedPowerUp = powerUp;
+    Player stationaryPlayer1 = player1;
+    Player stationaryPlayer2 = player2;
+    stationaryPlayer1.body.setVelocity(0.0f, 0.0f);
+    stationaryPlayer2.body.setVelocity(0.0f, 0.0f);
 
     float predictionDeltaTime = lastDeltaTime;
     if (predictionDeltaTime <= 0.0f)
@@ -574,10 +643,15 @@ void MainGameState::renderBallTrajectory()
     const int maximumSteps = 240;
     for (int step = 0; step < maximumSteps; step++)
     {
+        updateKickTimers(stationaryPlayer1, predictionDeltaTime);
+        updateKickTimers(stationaryPlayer2, predictionDeltaTime);
+
         Vector2& predictedVelocity = predictedBall.getVelocity();
-        physics.Gravity(predictedVelocity.y, predictionDeltaTime);
-        physics.ApplyFriction(predictedVelocity.x, BALL_FRICTION, predictionDeltaTime);
-        physics.Integrate(predictedBall, predictionDeltaTime);
+        float ballDeltaTime = predictedPowerUp.getBallDeltaTime(predictionDeltaTime);
+        physics.Gravity(predictedVelocity.y, ballDeltaTime);
+        physics.ApplyFriction(predictedVelocity.x, BALL_FRICTION, ballDeltaTime);
+        physics.Integrate(predictedBall, ballDeltaTime);
+        predictedPowerUp.update(predictionDeltaTime);
 
         Vector2& predictedPosition = predictedBall.getPosition();
         const float ballRadius = predictedBall.getRadius();
@@ -654,19 +728,29 @@ void MainGameState::renderBallTrajectory()
 
         Collision::Contact playerContact = Collision::detectCircleAABB(
             predictedBall,
-            stationaryPlayer1
+            stationaryPlayer1.body
         );
         if (!playerContact.isColliding)
         {
             playerContact = Collision::detectCircleAABB(
                 predictedBall,
-                stationaryPlayer2
+                stationaryPlayer2.body
             );
         }
         if (playerContact.isColliding)
         {
             DrawCircleV(currentPosition, 5.0f, RED);
             return;
+        }
+
+        bool kicked = kickBall(stationaryPlayer1, predictedBall);
+        if (kickBall(stationaryPlayer2, predictedBall))
+        {
+            kicked = true;
+        }
+        if (kicked)
+        {
+            DrawCircleV(currentPosition, 4.0f, ORANGE);
         }
 
         previousPosition = currentPosition;

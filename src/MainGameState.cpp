@@ -488,6 +488,15 @@ void MainGameState::renderDebug()
     DebugDraw::box(ballBounds, GOLD);
     DrawCircleLinesV(ballPosition, ball.getRadius(), GRAY);
 
+    if (powerUp.isAvailable())
+    {
+        Vector2 position = powerUp.getPosition();
+        float radius = powerUp.getRadius();
+        Rectangle bounds = {position.x - radius, position.y - radius, radius * 2.0f, radius * 2.0f};
+        DebugDraw::box(bounds, VIOLET);
+        DrawCircleLinesV(position, radius, DARKPURPLE);
+    }
+
     DebugDraw::box(goalP1.netArea, PURPLE);
     DebugDraw::box(goalP2.netArea, PURPLE);
     DebugDraw::box(goalP1.crossbar.getRect(), ORANGE);
@@ -528,7 +537,7 @@ void MainGameState::renderDebug()
     DebugDraw::arrow(
         ballPosition,
         ball.getVelocity(),
-        velocityScale,
+        velocityScale * powerUp.getBallSpeedFactor(),
         SKYBLUE
     );
 
@@ -542,11 +551,14 @@ void MainGameState::renderDebug()
     {
         DrawText("Prediccion aproximada; jugadores inmoviles", 20, 144, 14, GRAY);
     }
+    DrawText(TextFormat("Velocidad pelota: %.0f%%", powerUp.getBallSpeedFactor() * 100.0f),
+             20, 166, 16, DARKPURPLE);
 }
 
 void MainGameState::renderBallTrajectory()
 {
     Body predictedBall = ball;
+    PowerUp predictedPowerUp = powerUp;
     Body stationaryPlayer1 = player1.body;
     Body stationaryPlayer2 = player2.body;
     stationaryPlayer1.setVelocity(0.0f, 0.0f);
@@ -565,9 +577,11 @@ void MainGameState::renderBallTrajectory()
     for (int step = 0; step < maximumSteps; step++)
     {
         Vector2& predictedVelocity = predictedBall.getVelocity();
-        physics.Gravity(predictedVelocity.y, predictionDeltaTime);
-        physics.ApplyFriction(predictedVelocity.x, BALL_FRICTION, predictionDeltaTime);
-        physics.Integrate(predictedBall, predictionDeltaTime);
+        float ballDeltaTime = predictedPowerUp.getBallDeltaTime(predictionDeltaTime);
+        physics.Gravity(predictedVelocity.y, ballDeltaTime);
+        physics.ApplyFriction(predictedVelocity.x, BALL_FRICTION, ballDeltaTime);
+        physics.Integrate(predictedBall, ballDeltaTime);
+        predictedPowerUp.update(predictionDeltaTime);
 
         Vector2& predictedPosition = predictedBall.getPosition();
         const float ballRadius = predictedBall.getRadius();

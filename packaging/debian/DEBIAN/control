@@ -1,0 +1,11 @@
+Package: head-soccer-clash
+Version: 1.0.0
+Section: games
+Priority: optional
+Architecture: amd64
+Maintainer: Tu Nombre <amf162@alu.ua.es>
+Depends: libraylib450 | libraylib-dev | libraylib, libx11-6, libc6
+Description: Head Soccer Clash 2D Game
+ Juego de futbol 2D desarrollado en C++ con Raylib
+ para la asignatura Desarrollo Colaborativo de Aplicaciones (DCA).
+ Incluye motor de fisicas propio y modo local 2P.

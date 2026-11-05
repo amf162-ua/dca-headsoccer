@@ -3,6 +3,18 @@
 # ==========================================
 TARGET := bin/game
 
+USE_CCACHE ?= 1
+ifeq ($(USE_CCACHE),1)
+    CCACHE := $(shell which ccache 2>/dev/null)
+    ifneq ($(CCACHE),)
+        CXX := ccache g++
+    else
+        CXX := g++
+    endif
+else
+    CXX := g++
+endif
+
 CXX      := g++
 CXXFLAGS := -Wall -Wextra -Wno-unused-parameter -std=c++17 -MMD -MP
 

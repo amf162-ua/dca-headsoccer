@@ -15,7 +15,6 @@ else
     CXX := g++
 endif
 
-CXX      := g++
 CXXFLAGS := -Wall -Wextra -Wno-unused-parameter -std=c++17 -MMD -MP
 
 # --- RUTAS DE LIBRERÍAS Y ENLAZADO ---

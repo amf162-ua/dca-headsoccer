@@ -7,6 +7,7 @@ extern "C" {
 #include "physics/body.hpp"
 #include "physics/collision.hpp"
 #include "PowerUp.hpp"
+#include "ResourcesManager.hpp"
 #include <string>
 
 struct Player {
@@ -61,6 +62,7 @@ class MainGameState : public GameState
         int scoreP2;
 
         float matchTimer; // Temporizador del partido
+        Font hudFont{};
 
         float goalBannerTimer;       // Temporizador para el cartel de gol
         std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)
@@ -80,7 +82,7 @@ class MainGameState : public GameState
 
     public:
         MainGameState();
-        ~MainGameState() = default;
+        ~MainGameState() override;
 
         void init() override;
         void handleInput() override;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Head Soccer Clash
+Comment=Juego de futbol arcade para dos jugadores
+Exec=game
+Icon=head-soccer-clash
+Terminal=false
+Categories=Game;SportsGame;

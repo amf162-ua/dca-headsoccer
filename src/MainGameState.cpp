@@ -41,6 +41,11 @@ MainGameState::MainGameState()
 {
 }
 
+MainGameState::~MainGameState()
+{
+    ResourcesManager::UnloadFont(this->hudFont);
+}
+
 // Método privado para colocar jugadores y pelota en posición de saque
 void MainGameState::resetPositions()
 {
@@ -72,6 +77,8 @@ void MainGameState::resetPositions()
 
 void MainGameState::init()
 {
+    this->hudFont = ResourcesManager::LoadFont("fonts/DejaVuSans.ttf");
+
     // Reseteamos el marcador
     this->scoreP1 = 0;
     this->scoreP2 = 0;
@@ -477,9 +484,12 @@ void MainGameState::render()
 
     // Marcador (HUD)
     std::string scoreText = std::to_string(scoreP1) + "  -  " + std::to_string(scoreP2);
-    int fontSize = 40;
-    int textWidth = MeasureText(scoreText.c_str(), fontSize);
-    DrawText(scoreText.c_str(), 540 - (textWidth / 2), 25, fontSize, BLACK);
+    const float scoreFontSize = 40.0f;
+    const float textSpacing = 1.0f;
+    Vector2 scoreSize = MeasureTextEx(hudFont, scoreText.c_str(), scoreFontSize, textSpacing);
+    DrawTextEx(hudFont, scoreText.c_str(),
+               {540.0f - (scoreSize.x / 2.0f), 25.0f},
+               scoreFontSize, textSpacing, BLACK);
 
     int minutes = (int)matchTimer / 60;
     int seconds = (int)matchTimer % 60;
@@ -487,7 +497,11 @@ void MainGameState::render()
     snprintf(timerBuffer, sizeof(timerBuffer), "%02d:%02d", minutes, seconds);
 
     Color timerColor = (matchTimer <= 10.0f) ? RED : DARKGRAY; // Se pone rojo en los últimos 10 segundos
-    DrawText(timerBuffer, 540 - (MeasureText(timerBuffer, 30) / 2), 65, 30, timerColor);
+    const float timerFontSize = 30.0f;
+    Vector2 timerSize = MeasureTextEx(hudFont, timerBuffer, timerFontSize, textSpacing);
+    DrawTextEx(hudFont, timerBuffer,
+               {540.0f - (timerSize.x / 2.0f), 65.0f},
+               timerFontSize, textSpacing, timerColor);
 
     if (debugEnabled)
     {

@@ -108,7 +108,7 @@ ccache -s
 El `Makefile` activa ccache por defecto si está instalado. Para desactivarlo
 explícitamente se puede usar `USE_CCACHE=0`.
 
-## 4. ¿Cómo se comprueba que ccache está funcionando?
+## 4. Comprobación que ccache está funcionando
 
 `ccache -s` muestra las llamadas cacheables, los aciertos (*hits*) y los fallos
 (*misses*). En las tres ejecuciones frías se registraron 39 fallos cacheables

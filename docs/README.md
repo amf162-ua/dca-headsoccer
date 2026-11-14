@@ -25,3 +25,6 @@ make
 Pulsa **Enter** para empezar una partida y cierra la ventana para salir.
 
 Si modificas el código, vuelve a compilar antes de ejecutar para ver los cambios.
+
+Para consultar las mediciones de compilación paralela (`-jN`) y ccache, mira
+[COMPILACION.md](./COMPILACION.md).

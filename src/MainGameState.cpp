@@ -46,6 +46,8 @@ MainGameState::~MainGameState()
     ResourcesManager::UnloadFont(this->hudFont);
     ResourcesManager::UnloadTexture(this->goalNetTexture);
     ResourcesManager::UnloadTexture(this->goalCrossbarTexture);
+    ResourcesManager::UnloadTexture(this->stadiumTexture);
+    ResourcesManager::UnloadTexture(this->grassTexture);
 }
 
 // Método privado para colocar jugadores y pelota en posición de saque
@@ -82,6 +84,8 @@ void MainGameState::init()
     this->hudFont = ResourcesManager::LoadFont("fonts/DejaVuSans.ttf");
     this->goalNetTexture = ResourcesManager::LoadTexture("sprites/goal_net.png");
     this->goalCrossbarTexture = ResourcesManager::LoadTexture("sprites/goal_crossbar.png");
+    this->stadiumTexture = ResourcesManager::LoadTexture("sprites/stadium_background.png");
+    this->grassTexture = ResourcesManager::LoadTexture("sprites/grass.png");
 
     // Reseteamos el marcador
     this->scoreP1 = 0;
@@ -456,9 +460,17 @@ void MainGameState::render()
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    // Suelo
-    DrawRectangle(0, (int)GROUND_Y, (int)FIELD_WIDTH, 120, GREEN);
-    DrawLine(0, (int)GROUND_Y, (int)FIELD_WIDTH, (int)GROUND_Y, DARKGREEN);
+    // Fondo del estadio: ocupa desde arriba hasta el suelo
+    DrawTexturePro(stadiumTexture,
+                   {0.0f, 0.0f, (float)stadiumTexture.width, (float)stadiumTexture.height},
+                   {0.0f, 0.0f, FIELD_WIDTH, GROUND_Y},
+                   {0.0f, 0.0f}, 0.0f, WHITE);
+
+    // Césped: desde el suelo hasta el borde inferior de la ventana
+    DrawTexturePro(grassTexture,
+                   {0.0f, 0.0f, (float)grassTexture.width, (float)grassTexture.height},
+                   {0.0f, GROUND_Y, FIELD_WIDTH, (float)GetScreenHeight() - GROUND_Y},
+                   {0.0f, 0.0f}, 0.0f, WHITE);
 
     // Porterías (Redes y Largueros). La derecha es la izquierda volteada.
     renderGoal(goalP1, false);

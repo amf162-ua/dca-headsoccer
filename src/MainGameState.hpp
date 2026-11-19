@@ -65,6 +65,8 @@ class MainGameState : public GameState
         Font hudFont{};
         Texture2D goalNetTexture{};      // Red de la portería (dibujada para la portería izquierda)
         Texture2D goalCrossbarTexture{}; // Larguero
+        Texture2D stadiumTexture{};      // Fondo del estadio (todo lo que queda por encima del suelo)
+        Texture2D grassTexture{};        // Césped (de GROUND_Y al borde inferior)
 
         float goalBannerTimer;       // Temporizador para el cartel de gol
         std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)

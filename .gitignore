@@ -44,4 +44,5 @@ game
 # debug information files
 *.dwo
 build/
+build-web/
 bin/

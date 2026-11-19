@@ -44,6 +44,8 @@ MainGameState::MainGameState()
 MainGameState::~MainGameState()
 {
     ResourcesManager::UnloadFont(this->hudFont);
+    ResourcesManager::UnloadTexture(this->goalNetTexture);
+    ResourcesManager::UnloadTexture(this->goalCrossbarTexture);
 }
 
 // Método privado para colocar jugadores y pelota en posición de saque
@@ -78,6 +80,8 @@ void MainGameState::resetPositions()
 void MainGameState::init()
 {
     this->hudFont = ResourcesManager::LoadFont("fonts/DejaVuSans.ttf");
+    this->goalNetTexture = ResourcesManager::LoadTexture("sprites/goal_net.png");
+    this->goalCrossbarTexture = ResourcesManager::LoadTexture("sprites/goal_crossbar.png");
 
     // Reseteamos el marcador
     this->scoreP1 = 0;
@@ -456,11 +460,9 @@ void MainGameState::render()
     DrawRectangle(0, (int)GROUND_Y, (int)FIELD_WIDTH, 120, GREEN);
     DrawLine(0, (int)GROUND_Y, (int)FIELD_WIDTH, (int)GROUND_Y, DARKGREEN);
 
-    // Porterías (Redes y Largueros)
-    DrawRectangleRec(goalP1.netArea, LIGHTGRAY);
-    DrawRectangleRec(goalP2.netArea, LIGHTGRAY);
-    DrawRectangleRec(goalP1.crossbar.getRect(), DARKGRAY);
-    DrawRectangleRec(goalP2.crossbar.getRect(), DARKGRAY);
+    // Porterías (Redes y Largueros). La derecha es la izquierda volteada.
+    renderGoal(goalP1, false);
+    renderGoal(goalP2, true);
 
     renderPowerUp();
 
@@ -525,6 +527,27 @@ void MainGameState::render()
     }
 
     EndDrawing();
+}
+
+// Dibuja la red y el larguero estirando cada textura sobre su rectángulo del juego.
+// Las texturas solo son visuales: las colisiones siguen usando netArea y crossbar.
+void MainGameState::renderGoal(const Goal& goal, bool flipHorizontal)
+{
+    // Un ancho de origen negativo hace que raylib dibuje la textura en espejo.
+    const float direction = flipHorizontal ? -1.0f : 1.0f;
+
+    Rectangle netSource = {
+        0.0f, 0.0f,
+        direction * (float)goalNetTexture.width, (float)goalNetTexture.height
+    };
+    DrawTexturePro(goalNetTexture, netSource, goal.netArea, {0.0f, 0.0f}, 0.0f, WHITE);
+
+    Rectangle crossbarSource = {
+        0.0f, 0.0f,
+        direction * (float)goalCrossbarTexture.width, (float)goalCrossbarTexture.height
+    };
+    DrawTexturePro(goalCrossbarTexture, crossbarSource, goal.crossbar.getRect(),
+                   {0.0f, 0.0f}, 0.0f, WHITE);
 }
 
 void MainGameState::renderPowerUp()

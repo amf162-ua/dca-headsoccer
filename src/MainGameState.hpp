@@ -63,6 +63,8 @@ class MainGameState : public GameState
 
         float matchTimer; // Temporizador del partido
         Font hudFont{};
+        Texture2D goalNetTexture{};      // Red de la portería (dibujada para la portería izquierda)
+        Texture2D goalCrossbarTexture{}; // Larguero
 
         float goalBannerTimer;       // Temporizador para el cartel de gol
         std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)
@@ -79,6 +81,7 @@ class MainGameState : public GameState
         void renderDebug();
         void renderBallTrajectory();
         void renderPowerUp();
+        void renderGoal(const Goal& goal, bool flipHorizontal);
 
     public:
         MainGameState();

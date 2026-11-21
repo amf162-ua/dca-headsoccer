@@ -45,5 +45,7 @@ game
 *.dwo
 build/
 build-web/
+build-mingw/
+build-msvc/
 bin/
 dist/

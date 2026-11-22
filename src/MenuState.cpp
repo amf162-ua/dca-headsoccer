@@ -225,7 +225,7 @@ void MenuState::render()
     }
 
     DrawCircle(58, 352, 32.0f, Fade(WHITE, 0.13f));
-    DrawTriangle({ 67.0f, 335.0f }, { 67.0f, 369.0f }, { 48.0f, 352.0f }, WHITE);
+    DrawTriangle({ 67.0f, 335.0f }, { 48.0f, 352.0f }, { 67.0f, 369.0f }, WHITE);
     DrawCircle(1022, 352, 32.0f, Fade(WHITE, 0.13f));
     DrawTriangle({ 1013.0f, 335.0f }, { 1013.0f, 369.0f }, { 1032.0f, 352.0f }, WHITE);
 

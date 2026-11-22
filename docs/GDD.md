@@ -17,7 +17,7 @@ El flujo de ejecución de la aplicación está controlado por un gestor de estad
                                         |_______________________ Reintentar / Volver ____________________|
 
 ### Flujo de Navegación
-1. **Pantalla de Inicio / Menú Principal (`MenuState`):** Constituye el punto de entrada a la aplicación. Renderiza un título descriptivo y un menú interactivo mediante teclado o ratón que permite al usuario iniciar una nueva partida o salir de la aplicación.
+1. **Pantalla de Inicio / Menú Principal (`MenuState`):** Constituye el punto de entrada a la aplicación. Presenta un carrusel central de canchas seleccionables mediante flechas, teclas A/D o ratón. La cancha clásica está disponible para jugar; Ciudad nocturna y Playa tropical se muestran como próximas y no pueden iniciarse hasta que se implementen. ENTER inicia la partida cuando la cancha seleccionada está disponible.
 2. **Pantalla del Juego (`MatchState`):** Representa el núcleo jugable. Renderiza el terreno de juego, las porterías, los dos personajes y la pelota. Gestiona las entradas del usuario, calcula la integración de físicas (gravedad, velocidad y colisiones), actualiza el cronómetro descendente y contabiliza el marcador actual en el HUD.
 3. **Pantalla de Fin de Juego (`GameOverState`):** Se activa automáticamente al agotarse el tiempo del partido o cuando un jugador alcanza la condición de victoria. Detiene la simulación física, muestra el resultado final (indicando qué jugador ha ganado o si ha habido un empate) y ofrece la posibilidad de reiniciar el partido inmediatamente o regresar al menú principal.
 

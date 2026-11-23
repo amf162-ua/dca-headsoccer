@@ -34,8 +34,8 @@ namespace
 }
 
 // Constructor: Inicializamos el marcador a 0
-MainGameState::MainGameState()
-    : scoreP1(0), scoreP2(0), goalBannerTimer(0.0f),
+MainGameState::MainGameState(StadiumId stadium)
+    : scoreP1(0), scoreP2(0), stadium(stadium), goalBannerTimer(0.0f),
       goalBannerText(""), goalBannerColor(BLACK), debugEnabled(false),
       trajectoryEnabled(false), lastDeltaTime(1.0f / 60.0f)
 {
@@ -84,8 +84,17 @@ void MainGameState::init()
     this->hudFont = ResourcesManager::LoadFont("fonts/DejaVuSans.ttf");
     this->goalNetTexture = ResourcesManager::LoadTexture("sprites/goal_net.png");
     this->goalCrossbarTexture = ResourcesManager::LoadTexture("sprites/goal_crossbar.png");
-    this->stadiumTexture = ResourcesManager::LoadTexture("sprites/stadium_background.png");
-    this->grassTexture = ResourcesManager::LoadTexture("sprites/grass.png");
+
+    // Sprites del estadio elegido (los estadios sin sprites usan el dibujo clásico)
+    const StadiumInfo& stadiumInfo = Stadiums::get(this->stadium);
+    if (stadiumInfo.backgroundSprite != nullptr)
+    {
+        this->stadiumTexture = ResourcesManager::LoadTexture(stadiumInfo.backgroundSprite);
+    }
+    if (stadiumInfo.grassSprite != nullptr)
+    {
+        this->grassTexture = ResourcesManager::LoadTexture(stadiumInfo.grassSprite);
+    }
 
     // Reseteamos el marcador
     this->scoreP1 = 0;
@@ -306,7 +315,7 @@ void MainGameState::update(float deltaTime)
     {
         this->matchTimer = 0.0f;
         // Cuando se agota el tiempo, cambiamos a GameOverState pasando los marcadores
-        this->state_machine->add_state(std::make_unique<GameOverState>(scoreP1, scoreP2), true);
+        this->state_machine->add_state(std::make_unique<GameOverState>(scoreP1, scoreP2, stadium), true);
         return;
     }
 
@@ -460,17 +469,7 @@ void MainGameState::render()
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    // Fondo del estadio: ocupa desde arriba hasta el suelo
-    DrawTexturePro(stadiumTexture,
-                   {0.0f, 0.0f, (float)stadiumTexture.width, (float)stadiumTexture.height},
-                   {0.0f, 0.0f, FIELD_WIDTH, GROUND_Y},
-                   {0.0f, 0.0f}, 0.0f, WHITE);
-
-    // Césped: desde el suelo hasta el borde inferior de la ventana
-    DrawTexturePro(grassTexture,
-                   {0.0f, 0.0f, (float)grassTexture.width, (float)grassTexture.height},
-                   {0.0f, GROUND_Y, FIELD_WIDTH, (float)GetScreenHeight() - GROUND_Y},
-                   {0.0f, 0.0f}, 0.0f, WHITE);
+    renderField();
 
     // Porterías (Redes y Largueros). La derecha es la izquierda volteada.
     renderGoal(goalP1, false);
@@ -539,6 +538,34 @@ void MainGameState::render()
     }
 
     EndDrawing();
+}
+
+// Fondo y césped del estadio elegido. Si el estadio no tiene sprites
+// (Cancha clásica) se mantiene el dibujo original: fondo claro y suelo verde liso.
+void MainGameState::renderField()
+{
+    if (IsTextureValid(stadiumTexture))
+    {
+        // Fondo: desde arriba hasta el suelo
+        DrawTexturePro(stadiumTexture,
+                       {0.0f, 0.0f, (float)stadiumTexture.width, (float)stadiumTexture.height},
+                       {0.0f, 0.0f, FIELD_WIDTH, GROUND_Y},
+                       {0.0f, 0.0f}, 0.0f, WHITE);
+    }
+
+    if (IsTextureValid(grassTexture))
+    {
+        // Césped: desde el suelo hasta el borde inferior de la ventana
+        DrawTexturePro(grassTexture,
+                       {0.0f, 0.0f, (float)grassTexture.width, (float)grassTexture.height},
+                       {0.0f, GROUND_Y, FIELD_WIDTH, (float)GetScreenHeight() - GROUND_Y},
+                       {0.0f, 0.0f}, 0.0f, WHITE);
+    }
+    else
+    {
+        DrawRectangle(0, (int)GROUND_Y, (int)FIELD_WIDTH, 120, GREEN);
+        DrawLine(0, (int)GROUND_Y, (int)FIELD_WIDTH, (int)GROUND_Y, DARKGREEN);
+    }
 }
 
 // Dibuja la red y el larguero estirando cada textura sobre su rectángulo del juego.

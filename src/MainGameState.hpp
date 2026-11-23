@@ -8,6 +8,7 @@ extern "C" {
 #include "physics/collision.hpp"
 #include "PowerUp.hpp"
 #include "ResourcesManager.hpp"
+#include "Stadium.hpp"
 #include <string>
 
 struct Player {
@@ -65,8 +66,9 @@ class MainGameState : public GameState
         Font hudFont{};
         Texture2D goalNetTexture{};      // Red de la portería (dibujada para la portería izquierda)
         Texture2D goalCrossbarTexture{}; // Larguero
-        Texture2D stadiumTexture{};      // Fondo del estadio (todo lo que queda por encima del suelo)
-        Texture2D grassTexture{};        // Césped (de GROUND_Y al borde inferior)
+        StadiumId stadium;               // Estadio elegido en el menú
+        Texture2D stadiumTexture{};      // Fondo del estadio (vacía si el estadio no tiene sprite)
+        Texture2D grassTexture{};        // Césped (vacía si el estadio no tiene sprite)
 
         float goalBannerTimer;       // Temporizador para el cartel de gol
         std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)
@@ -84,9 +86,10 @@ class MainGameState : public GameState
         void renderBallTrajectory();
         void renderPowerUp();
         void renderGoal(const Goal& goal, bool flipHorizontal);
+        void renderField();
 
     public:
-        MainGameState();
+        explicit MainGameState(StadiumId stadium = StadiumId::Classic);
         ~MainGameState() override;
 
         void init() override;

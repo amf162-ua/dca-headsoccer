@@ -6,6 +6,10 @@ extern "C" {
 
 class MenuState : public GameState
 {
+    private:
+        int selectedMap;
+        float carouselPosition;
+
     public:
         MenuState();
         ~MenuState() = default;

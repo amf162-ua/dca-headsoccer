@@ -13,6 +13,7 @@ extern "C" {
 
 struct Player {
     Body body;       // Posicion (CENTRO), velocidad (px/s) y caja del jugador
+    Texture2D texture{}; // Sprite cargado y liberado por MainGameState.
     bool isGrounded; //comprobamos si el jugador está tocando el suelo
     float kickTimer;     // Tiempo que dura el pie extendido (ej: 0.18s)
     float kickCooldown;  // Tiempo antes de poder volver a chutar (ej: 0.35s)
@@ -87,6 +88,7 @@ class MainGameState : public GameState
         void renderPowerUp();
         void renderGoal(const Goal& goal, bool flipHorizontal);
         void renderField();
+        void renderPlayer(const Player& player);
 
     public:
         explicit MainGameState(StadiumId stadium = StadiumId::Classic);

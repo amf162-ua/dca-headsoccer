@@ -43,6 +43,8 @@ MainGameState::MainGameState(StadiumId stadium)
 
 MainGameState::~MainGameState()
 {
+    ResourcesManager::UnloadTexture(this->player1.texture);
+    ResourcesManager::UnloadTexture(this->player2.texture);
     ResourcesManager::UnloadFont(this->hudFont);
     ResourcesManager::UnloadTexture(this->goalNetTexture);
     ResourcesManager::UnloadTexture(this->goalCrossbarTexture);
@@ -81,6 +83,9 @@ void MainGameState::resetPositions()
 
 void MainGameState::init()
 {
+    // Las texturas se cargan una vez al empezar la partida, no cada fotograma.
+    this->player1.texture = ResourcesManager::LoadPlayerTexture(1);
+    this->player2.texture = ResourcesManager::LoadPlayerTexture(2);
     this->hudFont = ResourcesManager::LoadFont("fonts/DejaVuSans.ttf");
     this->goalNetTexture = ResourcesManager::LoadTexture("sprites/goal_net.png");
     this->goalCrossbarTexture = ResourcesManager::LoadTexture("sprites/goal_crossbar.png");
@@ -478,8 +483,8 @@ void MainGameState::render()
     renderPowerUp();
 
     // Jugadores y Pelota
-    DrawRectangleRec(player1.body.getRect(), RED);
-    DrawRectangleRec(player2.body.getRect(), BLUE);
+    renderPlayer(player1);
+    renderPlayer(player2);
     Color ballColor = BLACK;
     if (powerUp.getRemainingTime() > 0.0f)
     {
@@ -538,6 +543,15 @@ void MainGameState::render()
     }
 
     EndDrawing();
+}
+
+void MainGameState::renderPlayer(const Player& player)
+{
+    Rectangle source = {0.0f, 0.0f, (float)player.texture.width, (float)player.texture.height};
+
+    // El destino sigue siendo el cuerpo fisico: el dibujo no cambia las colisiones.
+    DrawTexturePro(player.texture, source, player.body.getRect(),
+                   {0.0f, 0.0f}, 0.0f, WHITE);
 }
 
 // Fondo y césped del estadio elegido. Si el estadio no tiene sprites

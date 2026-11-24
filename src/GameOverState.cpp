@@ -4,8 +4,8 @@
 #include <StateMachine.hpp>
 
 // Evaluamos el resultado del partido directamente en el constructor
-GameOverState::GameOverState(int score1, int score2) 
-    : finalScoreP1(score1), finalScoreP2(score2)
+GameOverState::GameOverState(int score1, int score2, StadiumId stadium)
+    : finalScoreP1(score1), finalScoreP2(score2), stadium(stadium)
 {
     if (finalScoreP1 > finalScoreP2) {
         winnerMessage = "¡GANADOR: JUGADOR 1 (ROJO)!";
@@ -22,10 +22,10 @@ void GameOverState::init()
 
 void GameOverState::handleInput()
 {
-    // Pulsa R -> Volver a Jugar (Reemplaza GameOverState por un nuevo MainGameState)
+    // Pulsa R -> Volver a Jugar en el mismo estadio (Reemplaza GameOverState por un nuevo MainGameState)
     if (IsKeyPressed(KEY_R))
     {
-        this->state_machine->add_state(std::make_unique<MainGameState>(), true);
+        this->state_machine->add_state(std::make_unique<MainGameState>(stadium), true);
     }
 
     // Pulsa M -> Volver al Menú Principal (Reemplaza GameOverState por MenuState)

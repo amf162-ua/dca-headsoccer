@@ -9,6 +9,7 @@ enum class StadiumId
 {
     Classic,
     Mestalla,
+    Lunar,
     NightCity,
     TropicalBeach
 };

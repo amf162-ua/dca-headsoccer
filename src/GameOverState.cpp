@@ -4,12 +4,23 @@
 #include <StateMachine.hpp>
 
 // Evaluamos el resultado del partido directamente en el constructor
-GameOverState::GameOverState(int score1, int score2, StadiumId stadium)
-    : finalScoreP1(score1), finalScoreP2(score2), stadium(stadium)
+GameOverState::GameOverState(int score1, int score2, StadiumId stadium, int forfeitWinner)
+    : finalScoreP1(score1), finalScoreP2(score2), stadium(stadium),
+      winner(0), forfeit(forfeitWinner == 1 || forfeitWinner == 2)
 {
+    // Si alguien abandona gana el otro, vaya como vaya el marcador
+    if (forfeit) {
+        winner = forfeitWinner;
+        winnerMessage = (winner == 1) ? "GANA JUGADOR 1 (ROJO) POR ABANDONO"
+                                      : "GANA JUGADOR 2 (AZUL) POR ABANDONO";
+        return;
+    }
+
     if (finalScoreP1 > finalScoreP2) {
+        winner = 1;
         winnerMessage = "¡GANADOR: JUGADOR 1 (ROJO)!";
     } else if (finalScoreP2 > finalScoreP1) {
+        winner = 2;
         winnerMessage = "¡GANADOR: JUGADOR 2 (AZUL)!";
     } else {
         winnerMessage = "¡EMPATE TÉCNICO!";
@@ -51,7 +62,7 @@ void GameOverState::render()
     DrawText(title, 540 - (titleWidth / 2), 150, titleFontSize, BLACK);
 
     // Mensaje de Ganador
-    Color resultColor = (finalScoreP1 > finalScoreP2) ? RED : ((finalScoreP2 > finalScoreP1) ? BLUE : DARKGRAY);
+    Color resultColor = (winner == 1) ? RED : ((winner == 2) ? BLUE : DARKGRAY);
     int winnerFontSize = 35;
     int winnerWidth = MeasureText(winnerMessage.c_str(), winnerFontSize);
     DrawText(winnerMessage.c_str(), 540 - (winnerWidth / 2), 240, winnerFontSize, resultColor);
@@ -61,6 +72,12 @@ void GameOverState::render()
     int scoreFontSize = 30;
     int scoreWidth = MeasureText(scoreStr.c_str(), scoreFontSize);
     DrawText(scoreStr.c_str(), 540 - (scoreWidth / 2), 320, scoreFontSize, DARKGRAY);
+
+    if (forfeit)
+    {
+        const char* note = "El partido se dio por terminado al abandonar un jugador";
+        DrawText(note, 540 - MeasureText(note, 20) / 2, 370, 20, GRAY);
+    }
 
     // Opciones del Menú
     DrawText("Pulsa [ R ] para Revancha", 540 - MeasureText("Pulsa [ R ] para Revancha", 22) / 2, 450, 22, DARKGREEN);

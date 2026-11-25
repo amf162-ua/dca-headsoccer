@@ -31,6 +31,25 @@ namespace
     const float E_WALL = 0.7f;
     const float E_CROSSBAR = 0.8f;
     const float E_PLAYER = 0.8f;
+
+    // Menú de pausa
+    enum PauseOption { PAUSE_CONTINUE = 0, PAUSE_FORFEIT_P1, PAUSE_FORFEIT_P2, PAUSE_OPTION_COUNT };
+    const char* const PAUSE_LABELS[PAUSE_OPTION_COUNT] = {
+        "CONTINUAR",
+        "ABANDONA JUGADOR 1 (ROJO)",
+        "ABANDONA JUGADOR 2 (AZUL)"
+    };
+    const float PAUSE_OPTION_WIDTH = 440.0f;
+    const float PAUSE_OPTION_HEIGHT = 52.0f;
+    const float PAUSE_FIRST_OPTION_Y = 300.0f;
+    const float PAUSE_OPTION_GAP = 66.0f;
+
+    Rectangle pauseOptionBounds(int option)
+    {
+        return { 540.0f - PAUSE_OPTION_WIDTH / 2.0f,
+                 PAUSE_FIRST_OPTION_Y + option * PAUSE_OPTION_GAP,
+                 PAUSE_OPTION_WIDTH, PAUSE_OPTION_HEIGHT };
+    }
 }
 
 // Constructor: Inicializamos el marcador a 0
@@ -149,6 +168,20 @@ void MainGameState::init()
 
 void MainGameState::handleInput()
 {
+    // Esc abre y cierra el menú de pausa
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        paused = !paused;
+        pauseSelection = PAUSE_CONTINUE;
+        return;
+    }
+
+    if (paused)
+    {
+        handlePauseInput();
+        return; // Con el juego en pausa los jugadores no se mueven
+    }
+
     if (IsKeyPressed(KEY_F1))
     {
         debugEnabled = !debugEnabled;
@@ -229,6 +262,56 @@ void MainGameState::handleInput()
     }
 }
 
+// Navegación del menú de pausa con teclado (flechas o W/S + Enter/Espacio) o ratón
+void MainGameState::handlePauseInput()
+{
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
+    {
+        pauseSelection = (pauseSelection + PAUSE_OPTION_COUNT - 1) % PAUSE_OPTION_COUNT;
+    }
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+    {
+        pauseSelection = (pauseSelection + 1) % PAUSE_OPTION_COUNT;
+    }
+
+    const Vector2 mouse = GetMousePosition();
+    for (int option = 0; option < PAUSE_OPTION_COUNT; ++option)
+    {
+        if (CheckCollisionPointRec(mouse, pauseOptionBounds(option)))
+        {
+            // Solo seguimos al ratón si se mueve, para no pisar la elección con teclado
+            if (GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f)
+            {
+                pauseSelection = option;
+            }
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                choosePauseOption(option);
+                return;
+            }
+        }
+    }
+
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE))
+    {
+        choosePauseOption(pauseSelection);
+    }
+}
+
+// Quien abandona pierde: se pasa a la pantalla final indicando el ganador por abandono
+void MainGameState::choosePauseOption(int option)
+{
+    if (option == PAUSE_CONTINUE)
+    {
+        paused = false;
+        return;
+    }
+
+    const int winner = (option == PAUSE_FORFEIT_P1) ? 2 : 1;
+    this->state_machine->add_state(
+        std::make_unique<GameOverState>(scoreP1, scoreP2, stadium, winner), true);
+}
+
 // Colisión del jugador con el suelo y con los bordes de la pantalla
 void MainGameState::keepPlayerInField(Player& player)
 {
@@ -303,6 +386,12 @@ bool MainGameState::kickBall(Player& player, Body& targetBall)
 
 void MainGameState::update(float deltaTime)
 {
+    // En pausa se congela todo: reloj, físicas y cartel de gol
+    if (paused)
+    {
+        return;
+    }
+
     lastDeltaTime = deltaTime;
 
     // El público se anima siempre, también durante el cartel de gol (lo celebra)
@@ -548,7 +637,52 @@ void MainGameState::render()
         DrawText(this->goalBannerText.c_str(), bannerX, bannerY, bannerFontSize, this->goalBannerColor);
     }
 
+    if (paused)
+    {
+        renderPauseMenu();
+    }
+
     EndDrawing();
+}
+
+// Menú de pausa encima del partido congelado
+void MainGameState::renderPauseMenu()
+{
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.6f));
+
+    const Rectangle panel = { 540.0f - 280.0f, 170.0f, 560.0f, 380.0f };
+    DrawRectangleRounded(panel, 0.08f, 12, { 14, 23, 43, 240 });
+    DrawRectangleRoundedLinesEx(panel, 0.08f, 12, 3.0f, Fade(WHITE, 0.25f));
+
+    const float titleSize = 46.0f;
+    const Vector2 titleMeasure = MeasureTextEx(hudFont, "PAUSA", titleSize, 2.0f);
+    DrawTextEx(hudFont, "PAUSA", { 540.0f - titleMeasure.x / 2.0f, 200.0f }, titleSize, 2.0f, WHITE);
+
+    const char* hint = "Quien abandona pierde el partido";
+    DrawText(hint, 540 - MeasureText(hint, 18) / 2, 258, 18, Fade(WHITE, 0.7f));
+
+    const Color optionColors[PAUSE_OPTION_COUNT] = { { 92, 220, 126, 255 }, RED, BLUE };
+    for (int option = 0; option < PAUSE_OPTION_COUNT; ++option)
+    {
+        const Rectangle bounds = pauseOptionBounds(option);
+        const bool selected = option == pauseSelection;
+
+        DrawRectangleRounded(bounds, 0.3f, 10,
+                             selected ? optionColors[option] : Fade(optionColors[option], 0.25f));
+        if (selected)
+        {
+            DrawRectangleRoundedLinesEx(bounds, 0.3f, 10, 3.0f, WHITE);
+        }
+
+        const int fontSize = 22;
+        DrawText(PAUSE_LABELS[option],
+                 540 - MeasureText(PAUSE_LABELS[option], fontSize) / 2,
+                 static_cast<int>(bounds.y + (bounds.height - fontSize) / 2.0f),
+                 fontSize, selected ? WHITE : Fade(WHITE, 0.75f));
+    }
+
+    const char* controls = "ESC: CONTINUAR    FLECHAS / W-S: ELEGIR    ENTER: ACEPTAR";
+    DrawText(controls, 540 - MeasureText(controls, 16) / 2, 520, 16, Fade(WHITE, 0.6f));
 }
 
 void MainGameState::renderPlayer(const Player& player)

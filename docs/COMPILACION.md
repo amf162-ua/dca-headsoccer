@@ -2,8 +2,14 @@
 
 ## Entorno y método de prueba
 
-Las mediciones se realizaron el 14 de noviembre de 2026 sobre el estado actual
-del proyecto:
+Las mediciones de este informe se realizaron el 14 de noviembre de 2026 sobre
+el estado del proyecto en esa fecha.
+
+Los resultados de `-jN` actualizados al 25 de noviembre, con los 14 archivos
+fuente actuales, estan en [BENCHMARKS_PARALELO.md](./BENCHMARKS_PARALELO.md).
+Los datos de ccache de este documento se conservan como referencia.
+
+Entorno de las mediciones del 14 de noviembre:
 
 | Elemento | Valor |
 |---|---|

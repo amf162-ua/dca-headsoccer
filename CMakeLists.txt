@@ -10,9 +10,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Opciones del compilador (Warnings equivalentes a CXXFLAGS de Make)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter)
-
 # Directorio de salida para los binarios compilados
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -40,15 +37,27 @@ if(EMSCRIPTEN)
     FetchContent_MakeAvailable(raylib)
 else()
     # Rutas de Raylib distribuida con el proyecto
-    set(RAYLIB_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/vendor/include")
-    set(RAYLIB_LIBRARY "${PROJECT_SOURCE_DIR}/vendor/lib/libraylib.a")
+    set(RAYLIB_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/vendor/include"
+        CACHE PATH "Carpeta con las cabeceras de Raylib")
+
+    # MSVC utiliza .lib; GCC y MinGW utilizan .a.
+    # La biblioteca debe haberse compilado para el sistema y compilador elegidos.
+    if(MSVC)
+        set(RAYLIB_DEFAULT_LIBRARY "${PROJECT_SOURCE_DIR}/vendor/lib/raylib.lib")
+    else()
+        set(RAYLIB_DEFAULT_LIBRARY "${PROJECT_SOURCE_DIR}/vendor/lib/libraylib.a")
+    endif()
+    set(RAYLIB_LIBRARY "${RAYLIB_DEFAULT_LIBRARY}"
+        CACHE FILEPATH "Biblioteca estatica de Raylib para la plataforma destino")
 
     if(NOT EXISTS "${RAYLIB_INCLUDE_DIR}/raylib.h")
         message(FATAL_ERROR "No se encuentra Raylib en ${RAYLIB_INCLUDE_DIR}")
     endif()
 
     if(NOT EXISTS "${RAYLIB_LIBRARY}")
-        message(FATAL_ERROR "No se encuentra la biblioteca de Raylib en ${RAYLIB_LIBRARY}")
+        message(FATAL_ERROR
+            "No se encuentra Raylib en ${RAYLIB_LIBRARY}. "
+            "Indica su biblioteca con -DRAYLIB_LIBRARY=ruta/al/archivo")
     endif()
 endif()
 
@@ -56,6 +65,14 @@ endif()
 # CREACIÓN DEL EJECUTABLE Y ENLAZADO
 # ==========================================
 add_executable(game ${SOURCES})
+
+# Las opciones de GCC no son validas para el compilador de Visual Studio.
+if(MSVC)
+    target_compile_options(game PRIVATE /W4 /utf-8)
+else()
+    target_compile_options(game PRIVATE -Wall -Wextra -Wno-unused-parameter)
+endif()
+
 target_include_directories(game PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
     "${PROJECT_SOURCE_DIR}/src/engine"
@@ -85,8 +102,27 @@ if(EMSCRIPTEN)
         "--preload-file=${PROJECT_SOURCE_DIR}/assets@/assets" # Recursos en el sistema de ficheros virtual
         "--shell-file=${raylib_SOURCE_DIR}/src/minshell.html" # Página HTML mínima de Raylib
     )
+elseif(WIN32)
+    target_include_directories(game SYSTEM PRIVATE "${RAYLIB_INCLUDE_DIR}")
+
+    # MinGW suele enlazar el runtime de GCC mediante DLL. Para que el juego se
+    # pueda mover a otro PC sin copiar esas DLL, lo incluimos en el ejecutable.
+    if(MINGW)
+        target_link_options(game PRIVATE -static)
+    endif()
+
+    # Bibliotecas del sistema que necesita Raylib en Windows.
+    # WIN32 tambien es verdadero al compilar para Windows de 64 bits.
+    target_link_libraries(game PRIVATE
+        "${RAYLIB_LIBRARY}"
+        opengl32
+        gdi32
+        winmm
+        user32
+        shell32
+    )
 else()
-    target_include_directories(game PRIVATE "${RAYLIB_INCLUDE_DIR}")
+    target_include_directories(game SYSTEM PRIVATE "${RAYLIB_INCLUDE_DIR}")
 
     # Enlazado de Raylib y librerías del sistema Linux (LDFLAGS de Make)
     target_link_libraries(game PRIVATE
@@ -103,11 +139,14 @@ install(TARGETS game RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 install(DIRECTORY assets/
     DESTINATION "${CMAKE_INSTALL_DATADIR}/head-soccer-clash/assets"
 )
-install(FILES
-    packaging/debian/usr/share/applications/head-soccer-clash.desktop
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
-)
-install(FILES
-    packaging/debian/usr/share/icons/hicolor/scalable/apps/head-soccer-clash.svg
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
-)
+# El lanzador .desktop y el icono del menu son propios de la instalacion Linux.
+if(UNIX AND NOT EMSCRIPTEN)
+    install(FILES
+        packaging/debian/usr/share/applications/head-soccer-clash.desktop
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
+    )
+    install(FILES
+        packaging/debian/usr/share/icons/hicolor/scalable/apps/head-soccer-clash.svg
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
+    )
+endif()

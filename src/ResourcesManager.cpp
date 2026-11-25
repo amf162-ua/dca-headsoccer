@@ -78,6 +78,21 @@ Texture2D ResourcesManager::LoadTexture(const std::string& textureFile)
     return texture;
 }
 
+Texture2D ResourcesManager::LoadPlayerTexture(int playerNumber)
+{
+    // Reutilizamos la busqueda de rutas y las comprobaciones de LoadTexture.
+    if (playerNumber == 1)
+    {
+        return LoadTexture("sprites/player_1.png");
+    }
+    if (playerNumber == 2)
+    {
+        return LoadTexture("sprites/player_2.png");
+    }
+
+    throw std::invalid_argument("El numero de jugador debe ser 1 o 2");
+}
+
 void ResourcesManager::UnloadTexture(Texture2D texture)
 {
     if (IsTextureValid(texture))

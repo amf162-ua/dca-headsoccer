@@ -18,13 +18,20 @@ endif
 CXXFLAGS := -Wall -Wextra -Wno-unused-parameter -std=c++17 -MMD -MP
 
 # --- RUTAS DE LIBRERÍAS Y ENLAZADO ---
-# -Lvendor/lib le dice al compilador que busque libraylib.a en nuestra carpeta local
+# Se puede cambiar esta ruta si Raylib esta instalada en otro directorio.
+RAYLIB_LIB_DIR ?= vendor/lib
 INC_LOCAL := -isystem vendor/include
-LDFLAGS   := -Lvendor/lib -lraylib -lX11 -lm -lpthread -ldl -lrt
+LDFLAGS   := -L$(RAYLIB_LIB_DIR) -lraylib -lX11 -lm -lpthread -ldl -lrt
 
 SRC_DIR   := src
 BUILD_DIR := build
 OBJ_DIR   := $(BUILD_DIR)/obj
+
+# El paquete usa su propia compilacion para fijar las rutas de /usr.
+# Asi no se reutiliza un ejecutable compilado para instalar en /usr/local.
+DIST_DIR := dist
+DEB_BUILD_DIR := $(abspath $(BUILD_DIR)/deb-build)
+DEB_ROOT := $(abspath $(BUILD_DIR)/deb-root)
 
 # ==========================================
 # RUTAS DE INSTALACIÓN (make install)
@@ -74,21 +81,19 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS)) $(INC_LOCAL)
 # ==========================================
 # REGLAS DEL MAKEFILE
 # ==========================================
-.PHONY: all clean info install uninstall
+.PHONY: all clean info install uninstall dist
 
 all: $(TARGET)
 
 # Regla de enlazado del ejecutable
-$(TARGET): $(OBJS) | bin
+$(TARGET): $(OBJS)
+	@mkdir -p $(dir $@)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $@
 
 # Regla de compilación de objetos
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
-
-bin $(OBJ_DIR):
-	mkdir -p $@
 
 -include $(DEPS)
 
@@ -117,6 +122,16 @@ uninstall:
 	rm -rf "$(DESTDIR)$(DATADIR)"
 	rm -f "$(DESTDIR)$(APPDIR)/$(APP_NAME).desktop"
 	rm -f "$(DESTDIR)$(ICONDIR)/$(APP_NAME).svg"
+
+# Genera el .deb sin instalar nada en el sistema.
+# Se reutiliza install sobre una carpeta temporal, nunca sobre packaging/debian.
+dist:
+	rm -rf "$(DEB_ROOT)"
+	$(MAKE) install PREFIX=/usr DESTDIR="$(DEB_ROOT)" \
+		BUILD_DIR="$(DEB_BUILD_DIR)" TARGET="$(DEB_BUILD_DIR)/bin/game"
+	install -Dm644 packaging/debian/DEBIAN/control "$(DEB_ROOT)/DEBIAN/control"
+	mkdir -p "$(DIST_DIR)"
+	dpkg-deb --build --root-owner-group "$(DEB_ROOT)" "$(DIST_DIR)/"
 
 info:
 	@echo "Ficheros .cpp detectados:"

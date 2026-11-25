@@ -7,7 +7,7 @@ extern "C" {
 }
 
 // Público animado de las gradas.
-// Cada aficionado se dibuja con un fotograma del sprite sheet (sentado, animando,
+// Cada aficionado (sprite de 10x15 px) se dibuja con un fotograma del sprite sheet (sentado, animando,
 // de pie o con los brazos arriba) y una camiseta tintada con su propio color.
 class Crowd
 {

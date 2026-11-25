@@ -6,18 +6,18 @@
 
 namespace
 {
-    // Medidas del sprite sheet (crowd_base.png y crowd_shirt.png): 4 fotogramas de 8x12 px
-    constexpr float FRAME_WIDTH = 8.0f;
-    constexpr float FRAME_HEIGHT = 12.0f;
+    // Medidas del sprite sheet (crowd_base.png y crowd_shirt.png): 4 fotogramas de 10x15 px
+    constexpr float FRAME_WIDTH = 10.0f;
+    constexpr float FRAME_HEIGHT = 15.0f;
     constexpr int FRAME_SITTING = 0;
     constexpr int FRAME_CHEERING = 1;
     constexpr int FRAME_STANDING = 2;
     constexpr int FRAME_ARMS_UP = 3;
 
     // Reparto en la grada
-    constexpr float ROW_SPACING = 12.0f;   // Separación vertical entre filas de público
-    constexpr float MIN_SEAT_GAP = 7.0f;   // Separación horizontal mínima entre aficionados
-    constexpr float MAX_SEAT_GAP = 13.0f;
+    constexpr float ROW_SPACING = 15.0f;   // Separación vertical entre filas de público
+    constexpr float MIN_SEAT_GAP = 9.0f;   // Separación horizontal mínima entre aficionados
+    constexpr float MAX_SEAT_GAP = 16.0f;
     constexpr int OCCUPANCY_PERCENT = 55;  // Asientos ocupados (deja ver el mosaico de la grada)
 
     // La ola

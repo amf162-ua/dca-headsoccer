@@ -100,6 +100,8 @@ void MainGameState::init()
     {
         this->grassTexture = ResourcesManager::LoadTexture(stadiumInfo.grassSprite);
     }
+    this->crowd.init(stadiumInfo.crowdZones, stadiumInfo.crowdZoneCount,
+                     stadiumInfo.crowdShirts, stadiumInfo.crowdShirtCount);
 
     // Reseteamos el marcador
     this->scoreP1 = 0;
@@ -303,6 +305,9 @@ void MainGameState::update(float deltaTime)
 {
     lastDeltaTime = deltaTime;
 
+    // El público se anima siempre, también durante el cartel de gol (lo celebra)
+    this->crowd.update(deltaTime, this->goalBannerTimer > 0.0f);
+
     // Si hay un gol reciente, gestionamos la pausa para la celebración
     if (this->goalBannerTimer > 0.0f)
     {
@@ -475,6 +480,7 @@ void MainGameState::render()
     ClearBackground(RAYWHITE);
 
     renderField();
+    crowd.render();
 
     // Porterías (Redes y Largueros). La derecha es la izquierda volteada.
     renderGoal(goalP1, false);

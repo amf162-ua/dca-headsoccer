@@ -25,6 +25,13 @@ struct StadiumInfo
     bool available;
     const char* backgroundSprite; // Fondo 1080x600 (nullptr = fondo liso clásico)
     const char* grassSprite;      // Césped 1080x120 (nullptr = césped liso clásico)
+
+    // Público animado (opcional): zonas de grada en coordenadas de pantalla
+    // y colores de camiseta. Si no se indican, el estadio no tiene público.
+    const Rectangle* crowdZones = nullptr;
+    int crowdZoneCount = 0;
+    const Color* crowdShirts = nullptr;
+    int crowdShirtCount = 0;
 };
 
 namespace Stadiums

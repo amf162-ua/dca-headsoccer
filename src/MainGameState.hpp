@@ -78,6 +78,14 @@ class MainGameState : public GameState
         bool trajectoryEnabled;
         float lastDeltaTime;
 
+        // Menú de pausa (Esc): Continuar, Abandona Jugador 1, Abandona Jugador 2
+        bool paused = false;
+        int pauseSelection = 0;
+
+        void handlePauseInput();
+        void choosePauseOption(int option);
+        void renderPauseMenu();
+
         void resetPositions();
         void keepPlayerInField(Player& player);                                // Suelo y limites de pantalla
         Collision::Contact collideBallWith(Body& circle, Body& other, float restitution);

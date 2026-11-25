@@ -12,6 +12,9 @@ int main()
 
     InitWindow(1080, 720, "Head Soccer");
     SetTargetFPS(60);
+    // Esc se usa para pausar el partido, así que no debe cerrar el juego.
+    // La ventana se sigue cerrando con la X (WindowShouldClose).
+    SetExitKey(KEY_NULL);
 
     {
         StateMachine state_machine = StateMachine();

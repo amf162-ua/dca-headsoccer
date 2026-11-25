@@ -2,7 +2,8 @@
 
 Estas instrucciones son para Linux. Hace falta tener `g++` con soporte para C++17 y Raylib instalados.
 
-Abre una terminal en la raíz del repositorio. CMake configura las cabeceras y la biblioteca de Raylib incluidas en `vendor/`:
+Abre una terminal en la raíz del repositorio. CMake usa las cabeceras de
+`vendor/include` y espera la biblioteca de Linux en `vendor/lib/libraylib.a`:
 
 ```bash
 cmake -S . -B build
@@ -22,12 +23,31 @@ make
 ./bin/game
 ```
 
+Si Raylib está instalada en `/usr/local/lib`, puedes indicar esa ruta a CMake:
+
+```bash
+cmake -S . -B build -DRAYLIB_LIBRARY=/usr/local/lib/libraylib.a
+cmake --build build
+```
+
+Con Make, la opción equivalente es:
+
+```bash
+make RAYLIB_LIB_DIR=/usr/local/lib
+```
+
+Para Windows, consulta [COMPILACION_WINDOWS.md](./COMPILACION_WINDOWS.md).
+La generación del `.deb` con `make dist` se explica en
+[EMPAQUETADO.md](./EMPAQUETADO.md).
+
 Pulsa **Enter** para empezar una partida y cierra la ventana para salir.
 
 Si modificas el código, vuelve a compilar antes de ejecutar para ver los cambios.
 
 Para consultar las mediciones de compilación paralela (`-jN`) y ccache, mira
 [COMPILACION.md](./COMPILACION.md).
+Los resultados actualizados de `-jN` están en
+[BENCHMARKS_PARALELO.md](./BENCHMARKS_PARALELO.md).
 
 ## Compilar para web (WebAssembly con Emscripten)
 

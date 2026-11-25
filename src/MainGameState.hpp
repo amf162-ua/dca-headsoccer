@@ -9,6 +9,7 @@ extern "C" {
 #include "PowerUp.hpp"
 #include "ResourcesManager.hpp"
 #include "Stadium.hpp"
+#include "Crowd.hpp"
 #include <string>
 
 struct Player {
@@ -70,6 +71,7 @@ class MainGameState : public GameState
         StadiumId stadium;               // Estadio elegido en el menú
         Texture2D stadiumTexture{};      // Fondo del estadio (vacía si el estadio no tiene sprite)
         Texture2D grassTexture{};        // Césped (vacía si el estadio no tiene sprite)
+        Crowd crowd;                     // Público animado de las gradas (si el estadio lo tiene)
 
         float goalBannerTimer;       // Temporizador para el cartel de gol
         std::string goalBannerText;  // Texto a mostrar ("¡GOL DEL JUGADOR 1!", etc.)

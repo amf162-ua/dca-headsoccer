@@ -1,0 +1,59 @@
+name: Generar paquete .deb en release
+
+on:
+  release:
+    types: [published] # Que solo se ejecute cuando se publique un release
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Si no escribe no lo puede subir :/
+
+    steps:
+      #Se baja el repo
+      - name: Checkout del repositorio 
+        uses: actions/checkout@v4
+
+
+      #Se instalan las dependencias
+      - name: Instalar dependencias 
+                                    # build-essential: gcc, g++, make
+                                    # libxl1-dev, libxrandr-dev, libxinerama-dev, libcursor-dev, libxi-dev: dependencias de raylib
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+
+
+      #Se baja raylib y se compila
+      - name: Compilar Raylib
+        run: | # La version 6.2 de raylib es la que usamos nosotros
+          git clone --depth 1 --branch 6.2 https://github.com/raysan5/raylib.git /tmp/raylib
+          make -C /tmp/raylib/src PLATFORM=PLATFORM_DESKTOP
+          mkdir -p vendor/lib
+          cp /tmp/raylib/src/libraylib.a vendor/lib/
+          cp /tmp/raylib/src/raylib.h /tmp/raylib/src/raymath.h /tmp/raylib/src/rlgl.h vendor/include/
+
+      #Para ver la version del tag que se esta usando (Utiliza GITHUB_REF_NAME para obtener el nombre del tag), el cat es pa ver que este bien
+      - name: Poner la version del tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^Version:.*/Version: ${VERSION}/" packaging/debian/DEBIAN/control
+          cat packaging/debian/DEBIAN/control
+      
+      #Generar el .deb
+      # USE_CCACHE=0 se supone que no hace falta pero bno porsi
+      # ls pa dejar en el log que se genero el .deb y ver su tamaño
+      - name: Generar el paquete .deb
+        run: |
+          make dist USE_CCACHE=0
+          ls -l dist/
+
+      #Subir el .deb como asset de la release desde donde se ha ejecutado el workflow
+      # --clobber: para sobreescribir en caso de que ya exista.
+      - name: Subir .deb a la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" dist/*.deb --clobber

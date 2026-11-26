@@ -1,4 +1,4 @@
-ctest --test-dir build --output-on-failurename: Build & Release Debian (.deb)
+name: Build & Release Debian (.deb)
 
 on:
   push:
@@ -50,13 +50,13 @@ jobs:
           path: dist/headsoccer_*.deb
 
       - name: Leer versión desde debian/changelog
-          id: version
-          if: github.ref == 'refs/heads/main'
-          run: |
-            FULL_VER=$(dpkg-parsechangelog -S Version)
-            UPSTREAM_VER=${FULL_VER%-*}
-            echo "tag=v${UPSTREAM_VER}" >> "$GITHUB_OUTPUT"
-            echo "deb_ver=${UPSTREAM_VER}" >> "$GITHUB_OUTPUT"
+        id: version
+        if: github.ref == 'refs/heads/main'
+        run: |
+          FULL_VER=$(dpkg-parsechangelog -S Version)
+          UPSTREAM_VER=${FULL_VER%-*}
+          echo "tag=v${UPSTREAM_VER}" >> "$GITHUB_OUTPUT"
+          echo "deb_ver=${UPSTREAM_VER}" >> "$GITHUB_OUTPUT"
 
       - name: Crear o actualizar GitHub Release
         if: github.ref == 'refs/heads/main'

@@ -1,0 +1,45 @@
+name: Build & Package Debian (.deb)
+
+on:
+  push:
+    branches: [ main, feat/empaquetado-deb ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias de compilación y empaquetado
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build git debhelper fakeroot \
+            libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxi-dev libasound2-dev
+
+      - name: Compilar y ejecutar tests (CTest)
+        run: |
+          cmake -B build -G Ninja -DENABLE_TESTS=ON
+          ninja -C build
+          ctest --test-dir build --output-on-failure
+
+      - name: Generar paquete .deb
+        run: |
+          dpkg-buildpackage -us -uc -b
+
+      - name: Probar instalación del .deb con apt
+        run: |
+          sudo apt-get install -y ../headsoccer_*.deb
+          which game
+          ldd /usr/bin/game
+
+      - name: Subir .deb como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: headsoccer-deb-ubuntu-24.04
+          path: ../headsoccer_*.deb

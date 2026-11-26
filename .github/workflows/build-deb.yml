@@ -1,10 +1,13 @@
-name: Build & Package Debian (.deb)
+ctest --test-dir build --output-on-failurename: Build & Release Debian (.deb)
 
 on:
   push:
-    branches: [ main, feat/empaquetado-deb ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: write
 
 jobs:
   build-and-package:
@@ -18,7 +21,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential cmake ninja-build git debhelper fakeroot \
+            build-essential cmake ninja-build git debhelper fakeroot dpkg-dev \
             libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev \
             libxcursor-dev libxi-dev libasound2-dev
 
@@ -45,3 +48,22 @@ jobs:
         with:
           name: headsoccer-deb-ubuntu-24.04
           path: dist/headsoccer_*.deb
+
+      - name: Leer versión desde debian/changelog
+          id: version
+          if: github.ref == 'refs/heads/main'
+          run: |
+            FULL_VER=$(dpkg-parsechangelog -S Version)
+            UPSTREAM_VER=${FULL_VER%-*}
+            echo "tag=v${UPSTREAM_VER}" >> "$GITHUB_OUTPUT"
+            echo "deb_ver=${UPSTREAM_VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Crear o actualizar GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Head Soccer Clash ${{ steps.version.outputs.deb_ver }}"
+          generate_release_notes: true
+          overwrite: true
+          files: dist/headsoccer_*.deb

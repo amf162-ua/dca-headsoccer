@@ -49,3 +49,12 @@ build-mingw/
 build-msvc/
 bin/
 dist/
+
+# Build y empaquetado Debian
+build/
+obj-*/
+debian/.debhelper/
+debian/headsoccer/
+debian/files
+debian/*.log
+debian/*.substvars

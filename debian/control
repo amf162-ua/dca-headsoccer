@@ -1,0 +1,26 @@
+Source: headsoccer
+Section: games
+Priority: optional
+Maintainer: Alex <amf162@alu.ua.es>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ ninja-build,
+ libx11-dev,
+ libxrandr-dev,
+ libxinerama-dev,
+ libxcursor-dev,
+ libxi-dev,
+ libgl-dev,
+Standards-Version: 4.7.2
+Homepage: https://github.com/amf162-ua/dca-headsoccer
+
+Package: headsoccer
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Juego de futbol arcade para dos jugadores
+ Implementacion en C++17 del juego Head Soccer Clash
+ utilizando Raylib y CMake.

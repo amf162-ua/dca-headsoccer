@@ -34,7 +34,9 @@ jobs:
 
       - name: Probar instalación del .deb con apt
         run: |
-          sudo apt-get install -y ../headsoccer_*.deb
+          mkdir -p dist
+          mv ../headsoccer_*.deb dist/
+          sudo apt-get install -y ./dist/headsoccer_*.deb
           which game
           ldd /usr/bin/game
 
@@ -42,4 +44,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: headsoccer-deb-ubuntu-24.04
-          path: ../headsoccer_*.deb
+          path: dist/headsoccer_*.deb
